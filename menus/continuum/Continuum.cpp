@@ -252,7 +252,7 @@ void DrawLegend( const LegendEntry *entries, int count, const char *rightText )
 {
 	const int barH = LEGEND_H * uiStatic.scaleY;
 	const int y = ScreenHeight - barH;
-	const int glyphH = 24 * uiStatic.scaleY;
+	const int glyphH = 30 * uiStatic.scaleY;
 	const int textH = 14 * uiStatic.scaleY;
 	const int margin = MARGIN * uiStatic.scaleX;
 
@@ -491,13 +491,15 @@ void CContButton::Draw()
 
 	if( szBadge )
 	{
+		// chip: text centered inside the outline, not hung off the baseline
 		const int bh = 11 * uiStatic.scaleY;
+		const int boxH = bh + 8 * uiStatic.scaleY;
 		const int bx = labelEnd + 12 * uiStatic.scaleX;
-		const int bw = g_FontMgr->GetTextWideScaled( fontSmall, szBadge, bh ) + 12 * uiStatic.scaleX;
-		const int by = labelY + ( labelH - bh ) / 2;
-		UI_DrawRectangleExt( bx, by - 3 * uiStatic.scaleY, bw, bh + 6 * uiStatic.scaleY, 0x7DE8B53F, 1 );
-		UI_DrawString( fontSmall, bx + 6 * uiStatic.scaleX, by, bw, bh * 1.45f,
-			szBadge, clrCaution, bh, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+		const int bw = g_FontMgr->GetTextWideScaled( fontSmall, szBadge, bh ) + 14 * uiStatic.scaleX;
+		const int by = labelY + ( labelH - boxH ) / 2;
+		UI_DrawRectangleExt( bx, by, bw, boxH, 0x7DE8B53F, 1 );
+		UI_DrawString( fontSmall, bx, by, bw, boxH,
+			szBadge, clrCaution, bh, QM_CENTER, ETF_NOSIZELIMIT | ETF_FORCECOL );
 	}
 
 	if( szHint && t > 0.0f )

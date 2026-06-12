@@ -57,7 +57,7 @@ public:
 		UI_DrawString( fontBody, m_scPos.x + 22 * uiStatic.scaleX, m_scPos.y + ( m_scSize.h - labelH ) / 2,
 			m_scSize.w, labelH * 1.45f, "Preview", clrInkFaint, labelH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
-		const int gh = 26 * uiStatic.scaleY;
+		const int gh = 32 * uiStatic.scaleY;
 		int x = m_scPos.x + m_scSize.w - 30 * uiStatic.scaleX;
 		const int gy = m_scPos.y + ( m_scSize.h - gh ) / 2;
 
@@ -805,7 +805,7 @@ void CMenuContConfig::Draw()
 	const int tabY = 160 * uiStatic.scaleY;
 	int x = tx;
 
-	x += DrawGlyph( GLYPH_LB, x, tabY - 2 * uiStatic.scaleY, tabH * 1.3f ) + 18 * uiStatic.scaleX;
+	x += DrawGlyph( GLYPH_LB, x, tabY - 4 * uiStatic.scaleY, tabH * 1.6f ) + 18 * uiStatic.scaleX;
 
 	for( int i = 0; i < TAB_COUNT; i++ )
 	{
@@ -827,7 +827,7 @@ void CMenuContConfig::Draw()
 		x += wide + 34 * uiStatic.scaleX;
 	}
 
-	DrawGlyph( GLYPH_RB, x, tabY - 2 * uiStatic.scaleY, tabH * 1.3f );
+	DrawGlyph( GLYPH_RB, x, tabY - 4 * uiStatic.scaleY, tabH * 1.6f );
 
 	// rows, clipped to the content viewport (yOffset matters when the
 	// screen is narrower than 4:3 and the menu is letterboxed)

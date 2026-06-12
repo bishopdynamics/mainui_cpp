@@ -504,7 +504,7 @@ void CMenuContServers::Draw()
 	static const char *sources[2] = { "INTERNET", "LAN" };
 	int x = tx;
 
-	x += DrawGlyph( GLYPH_LB, x, tabY - 2 * uiStatic.scaleY, tabH * 1.3f ) + 18 * uiStatic.scaleX;
+	x += DrawGlyph( GLYPH_LB, x, tabY - 4 * uiStatic.scaleY, tabH * 1.6f ) + 18 * uiStatic.scaleX;
 	for( int i = 0; i < 2; i++ )
 	{
 		const bool active = ( m_bLan == ( i == 1 ));
@@ -517,7 +517,7 @@ void CMenuContServers::Draw()
 
 		x += wide + 34 * uiStatic.scaleX;
 	}
-	DrawGlyph( GLYPH_RB, x, tabY - 2 * uiStatic.scaleY, tabH * 1.3f );
+	DrawGlyph( GLYPH_RB, x, tabY - 4 * uiStatic.scaleY, tabH * 1.6f );
 
 	// column captions
 	const int listW = ListW();

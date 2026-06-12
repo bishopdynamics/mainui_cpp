@@ -558,7 +558,7 @@ void CMenuContBindings::Draw()
 		// bound keys: primary bright, alternate dim; pad buttons draw as the
 		// controller glyph the rest of the UI uses
 		const int keyH = 14 * uiStatic.scaleY;
-		const int glyphH = 24 * uiStatic.scaleY;
+		const int glyphH = 30 * uiStatic.scaleY;
 		const struct { const char *text; int keynum; bool bright; int colX; } cols[2] =
 		{
 			{ r.key1, r.key1num, sel, KEY1_X },
