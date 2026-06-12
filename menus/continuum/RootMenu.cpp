@@ -37,6 +37,8 @@ private:
 	void LayoutRows();
 
 	CContButton resumeGame;
+	CContButton saveGame;
+	CContButton loadGame;
 	CContButton leaveGame;
 	CContButton game;
 	CContButton configuration;
@@ -51,7 +53,7 @@ private:
 
 void CMenuContRoot::QuitDialogCb()
 {
-	dialog.SetMessage( L( "GameUI_QuitConfirmationText" ));
+	dialog.SetMessage( "Are you sure you want to quit the game?" );
 	dialog.onPositive.SetCommand( false, "quit\n" );
 	dialog.Show();
 }
@@ -137,6 +139,12 @@ void CMenuContRoot::_Init()
 	resumeGame.SetNameAndStatus( L( "GameUI_GameMenu_ResumeGame" ), NULL );
 	resumeGame.onReleased = UI_CloseMenu;
 
+	saveGame.SetNameAndStatus( "Save Game", NULL );
+	saveGame.onReleased = UI_ContSaveGame_Menu;
+
+	loadGame.SetNameAndStatus( "Load Game", NULL );
+	loadGame.onReleased = UI_ContLoadGame_Menu;
+
 	leaveGame.SetNameAndStatus( "Main Menu", NULL );
 	leaveGame.onReleased = VoidCb( &CMenuContRoot::LeaveGameCb );
 
@@ -152,6 +160,8 @@ void CMenuContRoot::_Init()
 	dialog.Link( this );
 
 	AddItem( resumeGame );
+	AddItem( saveGame );
+	AddItem( loadGame );
 	AddItem( leaveGame );
 	AddItem( game );
 	AddItem( configuration );
@@ -161,11 +171,17 @@ void CMenuContRoot::_Init()
 void CMenuContRoot::LayoutRows()
 {
 	const bool connected = CL_IsActive();
+	const bool single = connected && gpGlobals->maxClients < 2;
 	m_bLastConnected = connected;
 
+	// mid-game the menu is about THIS game: save/load (singleplayer) and
+	// leaving; switching games means going through Main Menu first
 	resumeGame.SetVisibility( connected );
+	saveGame.SetVisibility( single );
+	loadGame.SetVisibility( single );
 	leaveGame.SetVisibility( connected );
 	leaveGame.szName = gpGlobals->maxClients > 1 ? "Disconnect" : "Main Menu";
+	game.SetVisibility( !connected );
 
 	int y = 300;
 	const int itemH = 64, gap = 6;
@@ -174,11 +190,21 @@ void CMenuContRoot::LayoutRows()
 	{
 		resumeGame.SetRect( MARGIN, y, 420, itemH );
 		y += itemH + gap;
+		if( single )
+		{
+			saveGame.SetRect( MARGIN, y, 420, itemH );
+			y += itemH + gap;
+			loadGame.SetRect( MARGIN, y, 420, itemH );
+			y += itemH + gap;
+		}
 		leaveGame.SetRect( MARGIN, y, 420, itemH );
 		y += itemH + gap;
 	}
-	game.SetRect( MARGIN, y, 420, itemH );
-	y += itemH + gap;
+	else
+	{
+		game.SetRect( MARGIN, y, 420, itemH );
+		y += itemH + gap;
+	}
 	configuration.SetRect( MARGIN, y, 420, itemH );
 	y += itemH + gap;
 	quit.SetRect( MARGIN, y, 420, itemH );
