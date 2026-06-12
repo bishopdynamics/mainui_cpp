@@ -39,6 +39,9 @@ public:
 
 	void Draw() override
 	{
+		if( RowClipped( m_scPos.y, m_scSize.h ))
+			return;
+
 		const int h = 12 * uiStatic.scaleY;
 		UI_DrawString( fontSmall, m_scPos.x + 6 * uiStatic.scaleX, m_scPos.y + m_scSize.h - h * 1.6f,
 			m_scSize.w, h * 1.45f, szName, clrAccent, h, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
@@ -72,6 +75,9 @@ public:
 
 	void Draw() override
 	{
+		if( RowClipped( m_scPos.y, m_scSize.h ))
+			return;
+
 		CContButton::Draw();
 
 		// toggle pill, right-aligned
@@ -360,6 +366,9 @@ public:
 
 	void Draw() override
 	{
+		if( RowClipped( m_scPos.y, m_scSize.h ))
+			return;
+
 		CContButton::Draw();
 
 		const int numH = 13 * uiStatic.scaleY;
@@ -387,14 +396,17 @@ public:
 	int nDecimals;
 };
 
-// invert look: UI face over the sign of m_pitch
+// invert-look toggle: UI face over the sign of a pitch cvar (m_pitch for
+// the mouse, joy_pitch for the right stick)
 class CContInvertRow : public CContToggleRow
 {
 public:
-	void Reload() override { bOn = EngFuncs::GetCvarFloat( "m_pitch" ) < 0.0f; }
+	void SetupSign( const char *cv ) { szCvar = cv; }
+
+	void Reload() override { bOn = EngFuncs::GetCvarFloat( szCvar ) < 0.0f; }
 	void ResetDefault() override
 	{
-		EngFuncs::CvarSetValue( "m_pitch", fabs( EngFuncs::GetCvarFloat( "m_pitch" )));
+		EngFuncs::CvarSetValue( szCvar, fabs( EngFuncs::GetCvarFloat( szCvar )));
 		Reload();
 	}
 
@@ -402,14 +414,66 @@ public:
 	{
 		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) || UI::Key::IsEnter( key ))
 		{
-			const float pitch = EngFuncs::GetCvarFloat( "m_pitch" );
-			EngFuncs::CvarSetValue( "m_pitch", -pitch );
+			const float pitch = EngFuncs::GetCvarFloat( szCvar );
+			EngFuncs::CvarSetValue( szCvar, -pitch );
 			bOn = -pitch < 0.0f;
 			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
 			return true;
 		}
 		return CContButton::KeyDown( key );
 	}
+};
+
+// slider that drives several cvars at once with one magnitude, preserving
+// each cvar's sign (joy look sensitivity, stick deadzones)
+class CContMultiSliderRow : public CContSliderRow
+{
+public:
+	enum { MAX_CVARS = 4 };
+
+	void SetupMulti( const char **cvars, int count, float min, float max, float step, float def, int decimals = 0 )
+	{
+		nCvars = Q_min( count, (int)MAX_CVARS );
+		for( int i = 0; i < nCvars; i++ )
+			szCvars[i] = cvars[i];
+		Setup( cvars[0], min, max, step, def, decimals );
+	}
+
+	void Reload() override
+	{
+		flValue = bound( flMin, fabs( EngFuncs::GetCvarFloat( szCvars[0] )), flMax );
+	}
+
+	void ResetDefault() override
+	{
+		flValue = flDefault;
+		WriteAll();
+	}
+
+	bool KeyDown( int key ) override
+	{
+		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ))
+		{
+			const float dir = UI::Key::IsRightArrow( key ) ? 1.0f : -1.0f;
+			flValue = bound( flMin, flValue + dir * flStep, flMax );
+			WriteAll();
+			return true;
+		}
+		return CContButton::KeyDown( key );
+	}
+
+private:
+	void WriteAll()
+	{
+		for( int i = 0; i < nCvars; i++ )
+		{
+			const float sign = EngFuncs::GetCvarFloat( szCvars[i] ) < 0.0f ? -1.0f : 1.0f;
+			EngFuncs::CvarSetValue( szCvars[i], flValue * sign );
+		}
+	}
+
+	const char *szCvars[MAX_CVARS];
+	int nCvars;
 };
 
 // MSAA also flips the gl_msaa master switch
@@ -431,6 +495,9 @@ public:
 
 	void Draw() override
 	{
+		if( RowClipped( m_scPos.y, m_scSize.h ))
+			return;
+
 		const int labelH = 16 * uiStatic.scaleY;
 		UI_DrawString( fontBody, m_scPos.x + 22 * uiStatic.scaleX, m_scPos.y + ( m_scSize.h - labelH ) / 2,
 			m_scSize.w, labelH * 1.45f, "Preview", clrInkFaint, labelH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
@@ -516,9 +583,18 @@ private:
 	CContSliderRow volMaster, volMusic, volSuit;
 
 	// controls
+	CContHeader hdrMouse, hdrKeys, hdrPad, hdrGyro;
 	CContSliderRow sensitivity;
 	CContInvertRow invertLook;
+	CContToggleRow rawInput;
 	CContButton keyBindings;
+	CContToggleRow padEnable;
+	CContMultiSliderRow padLook;
+	CContInvertRow padInvert;
+	CContMultiSliderRow padDeadzone;
+	CContToggleRow gyroEnable;
+	CContMultiSliderRow gyroSens;
+	CContButton gyroCalibrate;
 	CContButton gamepadOptions;
 
 	// interface
@@ -602,23 +678,76 @@ void CMenuContConfig::_Init()
 	AddRow( TAB_AUDIO, volSuit, ROW_H );
 
 	// ---- controls ----
-	sensitivity.SetNameAndStatus( "Mouse Sensitivity", NULL );
+	hdrMouse.SetNameAndStatus( "MOUSE", NULL );
+	AddRow( TAB_CONTROLS, hdrMouse, HEADER_H );
+
+	sensitivity.SetNameAndStatus( "Sensitivity", NULL );
 	sensitivity.Setup( "sensitivity", 0.1f, 10.0f, 0.1f, 3.0f, 1 );
+	AddRow( TAB_CONTROLS, sensitivity, ROW_H );
 
 	invertLook.SetNameAndStatus( "Invert Mouse", NULL );
 	invertLook.szHint = "Pull down to look up";
+	invertLook.SetupSign( "m_pitch" );
+	AddRow( TAB_CONTROLS, invertLook, ROW_H );
+
+	rawInput.SetNameAndStatus( "Raw Input", NULL );
+	rawInput.szHint = "Mouse input bypasses desktop acceleration";
+	rawInput.Setup( "m_rawinput", 1 );
+	AddRow( TAB_CONTROLS, rawInput, ROW_H );
+
+	hdrKeys.SetNameAndStatus( "KEYBOARD", NULL );
+	AddRow( TAB_CONTROLS, hdrKeys, HEADER_H );
 
 	keyBindings.SetNameAndStatus( "Keyboard & Mouse Bindings", NULL );
 	keyBindings.szHint = "Rebind every action";
 	keyBindings.onReleased = UI_Controls_Menu;
-
-	gamepadOptions.SetNameAndStatus( "Gamepad Options", NULL );
-	gamepadOptions.szHint = "Sticks, sensitivity & gyro";
-	gamepadOptions.onReleased = UI_GamePad_Menu;
-
-	AddRow( TAB_CONTROLS, sensitivity, ROW_H );
-	AddRow( TAB_CONTROLS, invertLook, ROW_H );
 	AddRow( TAB_CONTROLS, keyBindings, ROW_H );
+
+	hdrPad.SetNameAndStatus( "GAMEPAD", NULL );
+	AddRow( TAB_CONTROLS, hdrPad, HEADER_H );
+
+	padEnable.SetNameAndStatus( "Enable Gamepad", NULL );
+	padEnable.Setup( "joy_enable", 1 );
+	AddRow( TAB_CONTROLS, padEnable, ROW_H );
+
+	static const char *lookCvars[] = { "joy_pitch", "joy_yaw" };
+	padLook.SetNameAndStatus( "Look Sensitivity", NULL );
+	padLook.szHint = "Right stick look speed";
+	padLook.SetupMulti( lookCvars, 2, 20, 300, 10, 100, 0 );
+	AddRow( TAB_CONTROLS, padLook, ROW_H );
+
+	padInvert.SetNameAndStatus( "Invert Stick Y", NULL );
+	padInvert.szHint = "Pull down to look up";
+	padInvert.SetupSign( "joy_pitch" );
+	AddRow( TAB_CONTROLS, padInvert, ROW_H );
+
+	static const char *dzCvars[] = { "joy_side_deadzone", "joy_forward_deadzone", "joy_pitch_deadzone", "joy_yaw_deadzone" };
+	padDeadzone.SetNameAndStatus( "Stick Deadzone", NULL );
+	padDeadzone.szHint = "Raise if the view drifts on its own";
+	padDeadzone.SetupMulti( dzCvars, 4, 0, 16384, 512, 8192, 0 );
+	AddRow( TAB_CONTROLS, padDeadzone, ROW_H );
+
+	hdrGyro.SetNameAndStatus( "GYRO", NULL );
+	AddRow( TAB_CONTROLS, hdrGyro, HEADER_H );
+
+	gyroEnable.SetNameAndStatus( "Gyro Aim", NULL );
+	gyroEnable.szHint = "Fine-tune your aim by tilting the controller";
+	gyroEnable.Setup( "joy_gyro_enable", 0 );
+	AddRow( TAB_CONTROLS, gyroEnable, ROW_H );
+
+	static const char *gyroCvars[] = { "joy_gyro_pitch", "joy_gyro_yaw" };
+	gyroSens.SetNameAndStatus( "Gyro Sensitivity", NULL );
+	gyroSens.SetupMulti( gyroCvars, 2, 0.1f, 4.0f, 0.1f, 1.0f, 1 );
+	AddRow( TAB_CONTROLS, gyroSens, ROW_H );
+
+	gyroCalibrate.SetNameAndStatus( "Calibrate Gyroscope", NULL );
+	gyroCalibrate.szHint = "Put the controller on a flat surface first";
+	gyroCalibrate.onReleased.SetCommand( false, "joy_calibrate_gyro\n" );
+	AddRow( TAB_CONTROLS, gyroCalibrate, ROW_H );
+
+	gamepadOptions.SetNameAndStatus( "Advanced Gamepad Options", NULL );
+	gamepadOptions.szHint = "Axis remapping and the rest of the engine's options";
+	gamepadOptions.onReleased = UI_GamePad_Menu;
 	AddRow( TAB_CONTROLS, gamepadOptions, ROW_H );
 
 	// ---- interface ----
@@ -875,6 +1004,17 @@ void CMenuContConfig::SetTab( int tab )
 			firstVisible = i;
 	}
 
+	// gyro rows only make sense when the pad reports one
+	if( m_iTab == TAB_CONTROLS )
+	{
+		const bool haveGyro = EngFuncs::GetCvarFloat( "joy_have_gyro" ) != 0.0f;
+		gyroEnable.SetGrayed( !haveGyro );
+		gyroSens.SetGrayed( !haveGyro );
+		gyroCalibrate.SetGrayed( !haveGyro );
+		gyroEnable.szHint = haveGyro ? "Fine-tune your aim by tilting the controller"
+			: "No gyroscope detected on this controller";
+	}
+
 	ApplyLayout();
 
 	// move cursor onto the first row of the tab
@@ -1050,9 +1190,12 @@ void CMenuContConfig::Draw()
 
 	// rows, clipped to the content viewport (yOffset matters when the
 	// screen is narrower than 4:3 and the menu is letterboxed)
-	EngFuncs::PIC_EnableScissor( 0, ( CONTENT_TOP + uiStatic.yOffset ) * uiStatic.scaleY,
-		ScreenWidth, ( CONTENT_BOTTOM - CONTENT_TOP ) * uiStatic.scaleY );
+	const int clipTop = ( CONTENT_TOP + uiStatic.yOffset ) * uiStatic.scaleY;
+	const int clipBottom = clipTop + ( CONTENT_BOTTOM - CONTENT_TOP ) * uiStatic.scaleY;
+	EngFuncs::PIC_EnableScissor( 0, clipTop, ScreenWidth, clipBottom - clipTop );
+	SetRowClip( clipTop, clipBottom );
 	CMenuFramework::Draw();
+	SetRowClip( 0, 0 );
 	EngFuncs::PIC_DisableScissor();
 
 	// open dropdown overlays everything, outside the scissor

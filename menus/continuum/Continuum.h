@@ -59,6 +59,11 @@ void DrawBackdrop( CImage &pic ); // full-screen game-art backdrop (or flat bg)
 // word-wrapped multi-line text ('\n' respected); returns y below the last line
 int DrawWrappedText( HFont font, int x, int y, int w, int lineH, const char *text, unsigned int color );
 
+// scrolling viewports: FillRGBA ignores the engine scissor, so scrolled rows
+// skip drawing entirely when outside these render-space bounds (0/0 = off)
+void SetRowClip( int top, int bottom );
+bool RowClipped( int y, int h );
+
 // controller glyphs (gfx/shell/continuum/glyphs/<style>/<glyph>.png)
 enum EGlyph
 {

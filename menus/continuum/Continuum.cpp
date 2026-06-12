@@ -85,6 +85,21 @@ void DrawBackdrop( CImage &pic )
 	}
 }
 
+static int g_iRowClipTop, g_iRowClipBottom;
+
+void SetRowClip( int top, int bottom )
+{
+	g_iRowClipTop = top;
+	g_iRowClipBottom = bottom;
+}
+
+bool RowClipped( int y, int h )
+{
+	if( g_iRowClipTop == 0 && g_iRowClipBottom == 0 )
+		return false;
+	return y + h < g_iRowClipTop || y > g_iRowClipBottom;
+}
+
 int DrawWrappedText( HFont font, int x, int y, int w, int lineH, const char *text, unsigned int color )
 {
 	char line[256];
@@ -342,6 +357,9 @@ bool CContButton::KeyUp( int key )
 
 void CContButton::Draw()
 {
+	if( RowClipped( m_scPos.y, m_scSize.h ))
+		return;
+
 	const float t = FocusT();
 	const bool grayed = FBitSet( iFlags, QMF_GRAYED );
 	const unsigned int accent = bCaution ? clrCaution : clrAccent;
