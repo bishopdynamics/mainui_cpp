@@ -112,19 +112,15 @@ void CMenuContRoot::Show()
 void CMenuContRoot::_Init()
 {
 	resumeGame.SetNameAndStatus( L( "GameUI_GameMenu_ResumeGame" ), NULL );
-	resumeGame.szHint = "Back to the game";
 	resumeGame.onReleased = UI_CloseMenu;
 
 	game.SetNameAndStatus( "Game", NULL );
-	game.szHint = "Choose one of the campaigns to play";
 	SET_EVENT( game.onReleased, UI_ContGamePicker_Menu( ));
 
 	configuration.SetNameAndStatus( "Configuration", NULL );
-	configuration.szHint = "Video, audio & controls - shared across every game";
 	SET_EVENT( configuration.onReleased, UI_ContConfig_Menu( ));
 
 	quit.SetNameAndStatus( "Quit", NULL );
-	quit.szHint = "Exit to desktop";
 	quit.onReleased = VoidCb( &CMenuContRoot::QuitDialogCb );
 
 	dialog.Link( this );

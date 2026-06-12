@@ -111,6 +111,11 @@ public:
 	// settings rows override this; plain buttons ignore it
 	virtual void ResetDefault() { }
 
+	// scrolled layout: same math as CalcPosition/CalcSizes but WITHOUT the
+	// "negative position means bottom-anchored" convention, so rows can sit
+	// partially above the viewport while a list scrolls
+	void SetScrolledRect( int x, int y, int w, int h );
+
 	const char *szHint;
 	const char *szValue;  // optional right-aligned value (spinner-style rows)
 	const char *szBadge;  // optional small amber badge after label ("RESTART")

@@ -37,7 +37,7 @@ void VidInitFonts( void )
 	// CFontBuilder dedups identical requests, cheap to call per screen
 	fontBrand = CFontBuilder( "Michroma", 36 * scale, 500 ).Create();
 	fontTitle = CFontBuilder( "Michroma", 26 * scale, 500 ).Create();
-	fontItem  = CFontBuilder( "Michroma", 19 * scale, 500 ).Create();
+	fontItem  = CFontBuilder( "Michroma", 17 * scale, 500 ).Create();
 	fontSmall = CFontBuilder( "Michroma", 12 * scale, 500 ).Create();
 	fontBody  = CFontBuilder( "Trebuchet MS", 16 * scale, 500 ).Create();
 	fontHint  = CFontBuilder( "Trebuchet MS", 13 * scale, 500 ).Create();
@@ -97,7 +97,9 @@ bool RowClipped( int y, int h )
 {
 	if( g_iRowClipTop == 0 && g_iRowClipBottom == 0 )
 		return false;
-	return y + h < g_iRowClipTop || y > g_iRowClipBottom;
+	// rows mostly outside the viewport skip entirely; their FillRGBA-based
+	// parts (focus bar, badges, slider tracks) ignore the engine scissor
+	return y + h * 0.6f < g_iRowClipTop || y + h * 0.4f > g_iRowClipBottom;
 }
 
 int DrawWrappedText( HFont font, int x, int y, int w, int lineH, const char *text, unsigned int color )
@@ -321,6 +323,21 @@ CContButton::CContButton() : BaseClass(),
 	SetSize( 400, 56 );
 }
 
+void CContButton::SetScrolledRect( int x, int y, int w, int h )
+{
+	// keep logical pos non-negative: stock CalcPosition (which the framework
+	// may run between our layout passes) bottom-anchors negative coordinates
+	pos = Point( x, Q_max( y, 0 ));
+	size = Size( w, h );
+
+	m_scPos = Point( x * uiStatic.scaleX, y * uiStatic.scaleY );
+	m_scSize = Size( w * uiStatic.scaleX, h * uiStatic.scaleY );
+	m_scChSize = charSize * uiStatic.scaleY;
+
+	if( m_pParent && !IsAbsolutePositioned( ))
+		m_scPos += m_pParent->GetPositionOffset();
+}
+
 float CContButton::FocusT()
 {
 	if( !IsCurrentSelected( ))
@@ -378,20 +395,21 @@ void CContButton::Draw()
 		UI_FillRect( x, y, 3 * uiStatic.scaleX, h, grayed ? clrInkFaint : accent );
 	}
 
-	const int labelH = 19 * uiStatic.scaleY;
-	const int hintH = 13 * uiStatic.scaleY;
+	const int labelH = 17 * uiStatic.scaleY;
+	const int hintH = 12 * uiStatic.scaleY;
 	const int padX = x + 22 * uiStatic.scaleX + slide;
 
 	unsigned int labelColor = grayed ? clrInkFaint : ( t > 0.0f ? clrInk : clrInkDim );
 	int labelY = y + ( h - labelH ) / 2;
 
-	// reserve space for the hint while focused
+	// reserve space for the hint while focused; keep clear daylight between
+	// the label's descenders and the hint
 	if( szHint && t > 0.0f )
-		labelY = y + h / 2 - labelH + 2 * uiStatic.scaleY;
+		labelY = y + h / 2 - labelH - 5 * uiStatic.scaleY;
 
 	// returns the rightmost x reached
 	int labelEnd = UI_DrawString( fontItem, padX, labelY, w, labelH * 1.45f,
-		szName, labelColor, labelH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+		szName, labelColor, labelH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
 
 	if( szBadge )
 	{
@@ -408,7 +426,7 @@ void CContButton::Draw()
 	{
 		// fade the hint in with focus
 		unsigned int hintColor = ( clrInkFaint & 0x00FFFFFF ) | ((unsigned int)( t * 255.0f ) << 24 );
-		UI_DrawString( fontHint, padX, y + h / 2 + 4 * uiStatic.scaleY, w - 30 * uiStatic.scaleX, hintH * 1.45f,
+		UI_DrawString( fontHint, padX, y + h / 2 + 6 * uiStatic.scaleY, w - 30 * uiStatic.scaleX, hintH * 1.45f,
 			szHint, hintColor, hintH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
 	}
 

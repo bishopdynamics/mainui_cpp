@@ -129,6 +129,10 @@ void CMenuYesNoMessageBox::Show()
 		if( m_pItems[i] == &yes )
 		{
 			SetCursor( i );
+			// SetCursor only moves the index; the highlight is driven by
+			// the focus bit, so set it too or the selection is invisible
+			SetBits( yes.iFlags, QMF_HASKEYBOARDFOCUS );
+			ClearBits( no.iFlags, QMF_HASKEYBOARDFOCUS );
 			break;
 		}
 	}

@@ -23,7 +23,7 @@ using namespace Cont;
 #define ROW_H      52
 #define HEADER_H   40
 #define CONTENT_TOP 208
-#define CONTENT_BOTTOM ( 768 - LEGEND_H - 14 )
+#define CONTENT_BOTTOM ( 768 - LEGEND_H - 22 )
 
 /*
 ====================
@@ -32,7 +32,7 @@ row widgets
 */
 
 // section header, skipped by the cursor
-class CContHeader : public CMenuBaseItem
+class CContHeader : public CContButton
 {
 public:
 	CContHeader() { iFlags |= QMF_INACTIVE; }
@@ -62,7 +62,8 @@ public:
 
 	bool KeyDown( int key ) override
 	{
-		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) || UI::Key::IsEnter( key ))
+		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) || UI::Key::IsEnter( key )
+			|| ( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize )))
 		{
 			bOn = !bOn;
 			EngFuncs::CvarSetValue( szCvar, bOn ? 1.0f : 0.0f );
@@ -168,9 +169,17 @@ public:
 
 	bool KeyDown( int key ) override
 	{
-		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ))
+		int dir = 0;
+
+		if( UI::Key::IsLeftArrow( key ))
+			dir = -1;
+		else if( UI::Key::IsRightArrow( key ))
+			dir = 1;
+		else if( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize ))
+			dir = uiStatic.cursorX > m_scPos.x + m_scSize.w * 0.78f ? 1 : -1;
+
+		if( dir )
 		{
-			const int dir = UI::Key::IsRightArrow( key ) ? 1 : -1;
 			const int next = iIndex + dir;
 			if( next >= 0 && next < nCount )
 			{
@@ -239,6 +248,19 @@ public:
 			}
 			else if( UI::Key::IsEscape( key ))
 				bOpen = false;
+			else if( key == K_MOUSE1 )
+			{
+				if( UI_CursorInRect( m_iPopX, m_iPopY, m_iPopW, m_iPopVisible * m_iPopItemH ))
+				{
+					const int idx = m_iPopFirst + ( uiStatic.cursorY - m_iPopY ) / m_iPopItemH;
+					if( idx >= 0 && idx < nCount )
+					{
+						iPending = idx;
+						Sync();
+					}
+				}
+				bOpen = false; // click inside selects, click outside dismisses
+			}
 
 			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
 			return true; // swallow everything while open
@@ -300,6 +322,13 @@ public:
 		if( y + visible * itemH > ScreenHeight )
 			y = m_scPos.y - visible * itemH;
 
+		m_iPopX = x;
+		m_iPopY = y;
+		m_iPopW = w;
+		m_iPopItemH = itemH;
+		m_iPopFirst = first;
+		m_iPopVisible = visible;
+
 		UI_FillRect( x - 2, y - 2, w + 4, visible * itemH + 4, 0xF20E1014 );
 		UI_DrawRectangleExt( x - 2, y - 2, w + 4, visible * itemH + 4, 0x46FFFFFF, 1 );
 
@@ -329,6 +358,7 @@ public:
 private:
 	void Sync() { szValue = nCount ? m_szOptions[bound( 0, iPending, nCount - 1 )] : ""; }
 	const char *m_szOptions[MAX_OPTIONS];
+	int m_iPopX, m_iPopY, m_iPopW, m_iPopItemH, m_iPopFirst, m_iPopVisible;
 };
 
 class CContSliderRow : public CContButton
@@ -342,6 +372,40 @@ public:
 		flStep = step;
 		flDefault = def;
 		nDecimals = decimals;
+	}
+
+	// track geometry in render space, shared by Draw and mouse handling
+	void TrackRect( int &tx, int &ty, int &tw, int &th )
+	{
+		tw = 170 * uiStatic.scaleX;
+		tx = m_scPos.x + m_scSize.w - tw - 44 * uiStatic.scaleX - 30 * uiStatic.scaleX;
+		th = 4 * uiStatic.scaleY;
+		ty = m_scPos.y + m_scSize.h / 2 - th / 2;
+	}
+
+	virtual void SetValue( float v )
+	{
+		// snap to step
+		v = flMin + (int)(( v - flMin ) / flStep + 0.5f ) * flStep;
+		flValue = bound( flMin, v, flMax );
+		EngFuncs::CvarSetValue( szCvar, flValue );
+		_Event( QM_CHANGED );
+	}
+
+	void SetFromCursor()
+	{
+		int tx, ty, tw, th;
+		TrackRect( tx, ty, tw, th );
+		const float frac = bound( 0.0f, ( uiStatic.cursorX - tx ) / (float)tw, 1.0f );
+		SetValue( flMin + frac * ( flMax - flMin ));
+	}
+
+	void Think() override
+	{
+		// drag: while pressed with the button held, follow the cursor
+		if( m_bPressed && g_bCursorDown )
+			SetFromCursor();
+		CContButton::Think();
 	}
 
 	void Reload() override
@@ -361,6 +425,14 @@ public:
 			_Event( QM_CHANGED );
 			return true;
 		}
+
+		if( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize ))
+		{
+			m_bPressed = true;
+			SetFromCursor();
+			return true;
+		}
+
 		return CContButton::KeyDown( key );
 	}
 
@@ -375,19 +447,18 @@ public:
 		char num[16];
 		snprintf( num, sizeof( num ), "%.*f", nDecimals, flValue );
 
-		const int trackW = 170 * uiStatic.scaleX;
-		const int numW = 44 * uiStatic.scaleX;
-		const int tx = m_scPos.x + m_scSize.w - trackW - numW - 30 * uiStatic.scaleX;
+		int tx, ty, tw, th;
+		TrackRect( tx, ty, tw, th );
 		const int cy = m_scPos.y + m_scSize.h / 2;
 		const float frac = ( flValue - flMin ) / ( flMax - flMin );
 
-		UI_FillRect( tx, cy - 2 * uiStatic.scaleY, trackW, 4 * uiStatic.scaleY, 0x3CFFFFFF );
-		UI_FillRect( tx, cy - 2 * uiStatic.scaleY, trackW * frac, 4 * uiStatic.scaleY, bCaution ? clrCaution : clrAccent );
+		UI_FillRect( tx, ty, tw, th, 0x3CFFFFFF );
+		UI_FillRect( tx, ty, tw * frac, th, bCaution ? clrCaution : clrAccent );
 
-		const int knob = 12 * uiStatic.scaleY;
-		UI_FillRect( tx + trackW * frac - knob / 2, cy - knob / 2, knob, knob, clrInk );
+		const int knob = 13 * uiStatic.scaleY;
+		UI_DrawPic( tx + tw * frac - knob / 2, cy - knob / 2, knob, knob, clrInk, DotPic(), QM_DRAWTRANS );
 
-		UI_DrawString( fontHint, tx + trackW + 12 * uiStatic.scaleX, cy - numH / 2 - 2, numW, numH * 1.45f,
+		UI_DrawString( fontHint, tx + tw + 12 * uiStatic.scaleX, cy - numH / 2 - 2, 44 * uiStatic.scaleX, numH * 1.45f,
 			num, clrInkDim, numH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 	}
 
@@ -450,6 +521,14 @@ public:
 		WriteAll();
 	}
 
+	void SetValue( float v ) override
+	{
+		v = flMin + (int)(( v - flMin ) / flStep + 0.5f ) * flStep;
+		flValue = bound( flMin, v, flMax );
+		WriteAll();
+		_Event( QM_CHANGED );
+	}
+
 	bool KeyDown( int key ) override
 	{
 		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ))
@@ -459,7 +538,7 @@ public:
 			WriteAll();
 			return true;
 		}
-		return CContButton::KeyDown( key );
+		return CContSliderRow::KeyDown( key );
 	}
 
 private:
@@ -488,7 +567,7 @@ public:
 };
 
 // inert row that previews the active glyph set
-class CContGlyphPreviewRow : public CMenuBaseItem
+class CContGlyphPreviewRow : public CContButton
 {
 public:
 	CContGlyphPreviewRow() { iFlags |= QMF_INACTIVE; }
@@ -541,11 +620,11 @@ private:
 	void SetTab( int tab );
 	void ApplyLayout();
 	void ResetTabDefaults();
-	void AddRow( int tab, CMenuBaseItem &item, int logicalH );
+	void AddRow( int tab, CContButton &item, int logicalH );
 
 	struct entry_t
 	{
-		CMenuBaseItem *item;
+		CContButton *item;
 		int tab;
 		int baseY;     // logical y inside the tab, before scroll
 		int height;
@@ -558,6 +637,10 @@ private:
 
 	int m_iTab;
 	float m_flScroll, m_flScrollTarget;
+	CMenuBaseItem *m_pLastFocus = NULL;
+
+	// tab bar hitboxes, rebuilt every Draw for mouse support
+	struct { int x, y, w, h; } m_TabRects[TAB_COUNT] = {};
 
 	// video
 	CContDropdownRow resolution;
@@ -612,7 +695,7 @@ private:
 	CContMsaaRow msaa;
 };
 
-void CMenuContConfig::AddRow( int tab, CMenuBaseItem &item, int logicalH )
+void CMenuContConfig::AddRow( int tab, CContButton &item, int logicalH )
 {
 	if( m_nEntries >= MAX_ENTRIES )
 		return;
@@ -1036,9 +1119,7 @@ void CMenuContConfig::ApplyLayout()
 	for( int i = 0; i < m_nEntries; i++ )
 	{
 		entry_t &e = m_Entries[i];
-		e.item->SetRect( MARGIN, CONTENT_TOP + e.baseY - (int)m_flScroll, ROW_W, e.height );
-		e.item->CalcPosition();
-		e.item->CalcSizes();
+		e.item->SetScrolledRect( MARGIN, CONTENT_TOP + e.baseY - (int)m_flScroll, ROW_W, e.height );
 	}
 }
 
@@ -1062,10 +1143,12 @@ void CMenuContConfig::Think()
 		}
 	}
 
-	// keep the focused row in view
+	// keep the focused row in view, but only react when focus MOVES so the
+	// mouse wheel can scroll freely in between
 	CMenuBaseItem *focus = ItemAtCursor();
-	if( focus )
+	if( focus && focus != m_pLastFocus )
 	{
+		m_pLastFocus = focus;
 		for( int i = 0; i < m_nEntries; i++ )
 		{
 			entry_t &e = m_Entries[i];
@@ -1073,20 +1156,18 @@ void CMenuContConfig::Think()
 				continue;
 
 			const int view = CONTENT_BOTTOM - CONTENT_TOP;
-			if( e.baseY - m_flScrollTarget < 0 )
-				m_flScrollTarget = e.baseY;
-			else if( e.baseY + e.height - m_flScrollTarget > view )
-				m_flScrollTarget = e.baseY + e.height - view;
+			if( e.baseY - m_flScrollTarget < 6 )
+				m_flScrollTarget = Q_max( 0, e.baseY - 6 );
+			else if( e.baseY + e.height - m_flScrollTarget > view - 6 )
+				m_flScrollTarget = e.baseY + e.height - view + 6;
 			break;
 		}
 	}
 
 	const float dt = gpGlobals->frametime;
-	const float prev = m_flScroll;
 	m_flScroll += ( m_flScrollTarget - m_flScroll ) * bound( 0.0f, dt * 14.0f, 1.0f );
 
-	if( fabs( m_flScroll - prev ) > 0.1f )
-		ApplyLayout();
+	ApplyLayout();
 
 	CMenuFramework::Think();
 }
@@ -1127,6 +1208,33 @@ bool CMenuContConfig::KeyDown( int key )
 		SetTab(( m_iTab + 1 ) % TAB_COUNT );
 		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_MOVE] );
 		return true;
+	}
+
+	// mouse wheel scrolls the row viewport directly
+	if( key == K_MWHEELUP || key == K_MWHEELDOWN )
+	{
+		const int view = CONTENT_BOTTOM - CONTENT_TOP;
+		const float maxScroll = Q_max( 0, m_iTabHeight[m_iTab] - view );
+
+		m_flScrollTarget = bound( 0.0f, m_flScrollTarget + ( key == K_MWHEELDOWN ? 90.0f : -90.0f ), maxScroll );
+		return true;
+	}
+
+	// clicking a tab name switches to it
+	if( key == K_MOUSE1 )
+	{
+		for( int i = 0; i < TAB_COUNT; i++ )
+		{
+			if( UI_CursorInRect( m_TabRects[i].x, m_TabRects[i].y, m_TabRects[i].w, m_TabRects[i].h ))
+			{
+				if( i != m_iTab )
+				{
+					SetTab( i );
+					EngFuncs::PlayLocalSound( uiStatic.sounds[SND_MOVE] );
+				}
+				return true;
+			}
+		}
 	}
 
 	if( key == K_X_BUTTON || key == 'x' )
@@ -1176,6 +1284,12 @@ void CMenuContConfig::Draw()
 	{
 		const bool active = ( i == m_iTab );
 		const int wide = g_FontMgr->GetTextWideScaled( fontSmall, tabNames[i], tabH );
+
+		// generous hitbox for mouse users
+		m_TabRects[i].x = x - 10 * uiStatic.scaleX;
+		m_TabRects[i].y = tabY - 10 * uiStatic.scaleY;
+		m_TabRects[i].w = wide + 24 * uiStatic.scaleX;
+		m_TabRects[i].h = tabH + 24 * uiStatic.scaleY;
 
 		UI_DrawString( fontSmall, x, tabY, wide + 4, tabH * 1.45f, tabNames[i],
 			active ? clrInk : clrInkFaint, tabH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
