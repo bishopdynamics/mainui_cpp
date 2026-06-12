@@ -1129,7 +1129,7 @@ bool CMenuContConfig::KeyDown( int key )
 		return true;
 	}
 
-	if( key == K_X_BUTTON )
+	if( key == K_X_BUTTON || key == 'x' )
 	{
 		// on the video tab X applies pending resolution/display changes;
 		// everywhere else (or with nothing pending) it restores defaults
