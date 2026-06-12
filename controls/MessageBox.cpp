@@ -37,6 +37,18 @@ void CMenuMessageBox::_Init()
 
 void CMenuMessageBox::Draw()
 {
+	if( EngFuncs::GetCvarFloat( "ui_classic" ) != 0.0f )
+	{
+		// stock look for the classic menu family
+		dlgMessage.font = uiStatic.hDefaultFont;
+		dlgMessage.colorBase = uiPromptTextColor;
+
+		EngFuncs::FillRGBA( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 20, 20, 20, 235 );
+		UI_DrawRectangle( m_scPos, m_scSize, uiInputFgColor );
+		BaseClass::Draw();
+		return;
+	}
+
 	// Continuum panel, matching CMenuYesNoMessageBox
 	Cont::VidInitFonts();
 	dlgMessage.font = Cont::fontBody;

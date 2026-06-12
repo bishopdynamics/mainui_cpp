@@ -159,7 +159,7 @@ private:
 	// interface
 	CContSpinRow glyphStyle;
 	CContGlyphPreviewRow glyphPreview;
-	CContToggleRow showFps, showMapName, crosshairToggle;
+	CContToggleRow showFps, showMapName, crosshairToggle, classicUi;
 
 	// advanced
 	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf, hdrConsole;
@@ -332,11 +332,16 @@ void CMenuContConfig::_Init()
 	crosshairToggle.SetNameAndStatus( "Crosshair", NULL );
 	crosshairToggle.Setup( "crosshair", 1 );
 
+	classicUi.SetNameAndStatus( "Classic Menu", NULL );
+	classicUi.szHint = "The original menu style - applies next time the menu opens";
+	classicUi.Setup( "ui_classic", 0 );
+
 	AddRow( TAB_INTERFACE, glyphStyle, ROW_H );
 	AddRow( TAB_INTERFACE, glyphPreview, ROW_H );
 	AddRow( TAB_INTERFACE, crosshairToggle, ROW_H );
 	AddRow( TAB_INTERFACE, showFps, ROW_H );
 	AddRow( TAB_INTERFACE, showMapName, ROW_H );
+	AddRow( TAB_INTERFACE, classicUi, ROW_H );
 
 	// ---- advanced ----
 	hdrStream.SetNameAndStatus( "STREAMING", NULL );

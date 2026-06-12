@@ -34,6 +34,12 @@ label in the Michroma item font
 */
 void CMenuDialogButton::Draw()
 {
+	if( EngFuncs::GetCvarFloat( "ui_classic" ) != 0.0f )
+	{
+		CMenuPicButton::Draw();
+		return;
+	}
+
 	Cont::VidInitFonts(); // cheap, the builder dedups per video mode
 
 	const bool focused = IsCurrentSelected();
@@ -154,10 +160,7 @@ void CMenuYesNoMessageBox::_VidInit()
 	CalcPosition();
 	CalcSizes();
 
-	// Continuum theme: body sans for the message text
-	Cont::VidInitFonts();
-	dlgMessage1.font = Cont::fontBody;
-	dlgMessage1.colorBase = Cont::clrInk;
+	// message font/colors are assigned per-Draw (they follow ui_classic)
 	dlgMessage1.charSize = 17;
 }
 
@@ -194,10 +197,28 @@ CMenuYesNoMessageBox::Draw
 */
 void CMenuYesNoMessageBox::Draw()
 {
-	// deep scrim so the dialog reads against any backdrop
+	if( EngFuncs::GetCvarFloat( "ui_classic" ) != 0.0f )
+	{
+		// stock look for the classic menu family
+		dlgMessage1.font = uiStatic.hDefaultFont;
+		dlgMessage1.colorBase = uiPromptTextColor;
+
+		UI_FillRect( 0, 0, gpGlobals->scrWidth, gpGlobals->scrHeight, 0x40000000 );
+		EngFuncs::FillRGBA( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 20, 20, 20, 235 );
+		UI_DrawRectangle( m_scPos, m_scSize, uiInputFgColor );
+
+		CMenuBaseWindow::Draw();
+		return;
+	}
+
+	// Continuum: deep scrim so the dialog reads against any backdrop
+	Cont::VidInitFonts();
+	dlgMessage1.font = Cont::fontBody;
+	dlgMessage1.colorBase = Cont::clrInk;
+
 	UI_FillRect( 0, 0, gpGlobals->scrWidth, gpGlobals->scrHeight, 0x96000000 );
 
-	// Continuum panel: near-black card, hairline border, accent top edge
+	// near-black card, hairline border, accent top edge
 	UI_FillRect( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 0xF20E1014 );
 	UI_DrawRectangleExt( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 0x28FFFFFF, 1 );
 	UI_FillRect( m_scPos.x, m_scPos.y, m_scSize.w, 3 * uiStatic.scaleY, Cont::clrAccent );

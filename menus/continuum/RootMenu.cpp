@@ -287,4 +287,18 @@ void CMenuContRoot::Draw()
 	DrawLegend( legend, V_ARRAYSIZE( legend ), "XASH3D - CONTINUUM BUILD" );
 }
 
-ADD_MENU( menu_main, CMenuContRoot, UI_Main_Menu );
+// UI_Main_Menu picks the menu family: the Continuum root by default, the
+// classic menu when ui_classic is set. The stack is cleared whenever the
+// menu closes, so flipping the cvar takes effect on the next visit — no
+// restart needed
+ADD_MENU3( menu_main, CMenuContRoot, UI_Main_Menu );
+void UI_Main_Menu( void )
+{
+	if( EngFuncs::GetCvarFloat( "ui_classic" ) != 0.0f )
+	{
+		UI_MainClassic_Menu();
+		return;
+	}
+
+	menu_main->Show();
+}

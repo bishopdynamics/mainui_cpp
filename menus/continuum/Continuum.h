@@ -23,6 +23,8 @@ GNU General Public License for more details.
 #include "FontManager.h"
 #include "keydefs.h"
 
+void UI_MainClassic_Menu( void ); // the stock main menu (menus/Main.cpp)
+
 // the screens, shown via these (UI_Main_Menu lives in RootMenu.cpp)
 void UI_ContGamePicker_Menu( void );
 void UI_ContGamePage_Menu( void );

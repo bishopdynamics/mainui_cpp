@@ -279,6 +279,7 @@ void UI_LanGame_Menu( void );
 void UI_ServerBrowser_Menu( void );
 void UI_PlayerSetup_Menu( void );
 void UI_Controls_Menu( void );
+void UI_AdvSettings_Menu( void );
 void UI_AdvControls_Menu( void );
 void UI_GameOptions_Menu( void );
 void UI_CreateGame_Menu( void );

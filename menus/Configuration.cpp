@@ -65,6 +65,8 @@ void CMenuOptions::_Init( void )
 		PC_TOUCH, UI_Touch_Menu, QMF_NOTIFY, 't' );
 	AddButton( L( "GameUI_Joystick" ), L( "Change gamepad axis and button settings" ),
 		PC_GAMEPAD, UI_GamePad_Menu, QMF_NOTIFY, 'g' );
+	AddButton( L( "Advanced" ), L( "Level streaming, renderer, console and menu-style settings" ),
+		PC_ADV_OPT, UI_AdvSettings_Menu, QMF_NOTIFY );
 	AddButton( L( "Update" ), L( "Check for updates" ),
 		PC_UPDATE, msgBox.MakeOpenEvent(), QMF_NOTIFY );
 	AddButton( L( "Done" ), L( "Go back to the Main menu" ),
