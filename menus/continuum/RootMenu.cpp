@@ -191,11 +191,11 @@ void CMenuContRoot::Draw()
 		"C O N T I N U U M   E D I T I O N", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	// current game context, top right (useful when booted into an expansion)
-	const int ctxH = 12 * uiStatic.scaleY;
+	const int ctxH = 19 * uiStatic.scaleY;
 	const char *title = gMenu.m_gameinfo.title;
-	int wide = g_FontMgr->GetTextWideScaled( fontSmall, title, ctxH );
-	UI_DrawString( fontSmall, ScreenWidth - MARGIN * uiStatic.scaleX - wide, by + 4 * uiStatic.scaleY,
-		wide + 4, ctxH * 1.45f, title, clrInkFaint, ctxH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	int wide = g_FontMgr->GetTextWideScaled( fontItem, title, ctxH );
+	UI_DrawString( fontItem, ScreenWidth - MARGIN * uiStatic.scaleX - wide, by + 4 * uiStatic.scaleY,
+		wide + 4, ctxH * 1.45f, title, clrInkDim, ctxH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	CMenuFramework::Draw();
 

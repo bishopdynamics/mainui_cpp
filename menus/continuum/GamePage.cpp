@@ -120,20 +120,16 @@ bool CMenuContGamePage::KeyDown( int key )
 void CMenuContGamePage::_Init()
 {
 	newGame.SetNameAndStatus( "New Game", NULL );
-	newGame.szHint = "Left/right sets difficulty";
 	newGame.szValue = g_szSkillNames[newGame.iSkill];
 	newGame.onReleased = VoidCb( &CMenuContGamePage::NewGameCb );
 
 	loadGame.SetNameAndStatus( "Load Game", NULL );
-	loadGame.szHint = "Pick up where you left off";
 	loadGame.onReleased = UI_LoadGame_Menu;
 
 	saveGame.SetNameAndStatus( "Save Game", NULL );
-	saveGame.szHint = "Available while playing";
 	saveGame.onReleased = UI_SaveGame_Menu;
 
 	multiplayer.SetNameAndStatus( "Multiplayer", NULL );
-	multiplayer.szHint = "Browse servers or host your own";
 	multiplayer.onReleased = UI_MultiPlayer_Menu;
 
 	dialog.Link( this );
@@ -151,7 +147,6 @@ void CMenuContGamePage::Show()
 	// contextual availability
 	const bool inSingle = CL_IsActive() && gpGlobals->maxClients < 2;
 	saveGame.SetGrayed( !inSingle );
-	saveGame.szHint = inSingle ? "Save your progress" : "Available while playing";
 
 	if( gMenu.m_gameinfo.gamemode == GAME_MULTIPLAYER_ONLY || gMenu.m_gameinfo.startmap[0] == 0 )
 		newGame.SetGrayed( true );
