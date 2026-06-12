@@ -114,6 +114,28 @@ void CMenuYesNoMessageBox::_VidInit()
 
 /*
 ==============
+CMenuYesNoMessageBox::Show
+
+gamepad-first: land focus on the positive choice so A/Enter confirms
+without having to navigate first
+==============
+*/
+void CMenuYesNoMessageBox::Show()
+{
+	BaseClass::Show();
+
+	FOR_EACH_VEC( m_pItems, i )
+	{
+		if( m_pItems[i] == &yes )
+		{
+			SetCursor( i );
+			break;
+		}
+	}
+}
+
+/*
+==============
 CMenuYesNoMessageBox::Draw
 ==============
 */

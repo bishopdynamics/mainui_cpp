@@ -30,6 +30,7 @@ public:
 	void _Init() override;
 	void _VidInit() override;
 	void Draw() override;
+	void Show() override;
 	bool KeyDown( int key ) override;
 	void SetMessage( const char *msg );
 	void SetPositiveButton( const char *msg, EDefaultBtns buttonPic, int extrawidth = 0 );

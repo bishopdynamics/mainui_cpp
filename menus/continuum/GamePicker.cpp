@@ -341,15 +341,13 @@ void CMenuContGamePicker::Draw()
 		else
 			UI_DrawRectangleExt( x, y, w, h, 0x23FFFFFF, 1 );
 
-		// current-game tag
-		if( c.current )
+		// current-game tag: pre-baked rounded chip, drawn at its own aspect
+		if( c.current && ChipCurrentPic().IsValid( ))
 		{
-			const int tagH = 10 * uiStatic.scaleY;
-			const char *tag = "CURRENT";
-			const int tagW = g_FontMgr->GetTextWideScaled( fontSmall, tag, tagH ) + 12 * uiStatic.scaleX;
-			UI_FillRect( x + 8 * uiStatic.scaleX, y + 8 * uiStatic.scaleY, tagW, tagH + 8 * uiStatic.scaleY, clrAccent );
-			UI_DrawString( fontSmall, x + 14 * uiStatic.scaleX, y + 12 * uiStatic.scaleY, tagW, tagH * 1.45f,
-				tag, 0xFF14110A, tagH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+			CImage &chip = ChipCurrentPic();
+			const int ch2 = 18 * uiStatic.scaleY;
+			const int cw = ch2 * EngFuncs::PIC_Width( chip.Handle( )) / EngFuncs::PIC_Height( chip.Handle( ));
+			UI_DrawPic( x + 8 * uiStatic.scaleX, y + 8 * uiStatic.scaleY, cw, ch2, 0xFFFFFFFF, chip, QM_DRAWTRANS );
 		}
 	}
 

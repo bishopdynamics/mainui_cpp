@@ -83,6 +83,11 @@ void DrawLegend( const LegendEntry *entries, int count, const char *rightText = 
 bool GameArt( const char *folder, CImage &pic );
 bool GameBackdrop( const char *folder, CImage &pic );
 
+// small shared UI textures (white, tint at draw time)
+CImage &PillPic( void );        // rounded capsule, 2:1
+CImage &DotPic( void );         // circle
+CImage &ChipCurrentPic( void ); // baked rounded CURRENT tag
+
 // Mockup-styled list button: left accent edge + Michroma label, hint text
 // slides out under the label while focused. Left/right are NOT consumed, so
 // holders can use them for cursor movement where it makes sense.

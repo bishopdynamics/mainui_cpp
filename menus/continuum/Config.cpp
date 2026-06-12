@@ -81,9 +81,11 @@ public:
 		const int dot = ph - 6 * uiStatic.scaleY;
 		const bool grayed = FBitSet( iFlags, QMF_GRAYED );
 
-		UI_FillRect( px, py, pw, ph, bOn && !grayed ? ( bCaution ? clrCaution : clrAccent ) : 0x3CFFFFFF );
+		UI_DrawPic( px, py, pw, ph, bOn && !grayed ? ( bCaution ? clrCaution : clrAccent ) : 0x50FFFFFF,
+			PillPic(), QM_DRAWTRANS );
 		const int dx = bOn ? px + pw - dot - 3 * uiStatic.scaleX : px + 3 * uiStatic.scaleX;
-		UI_FillRect( dx, py + 3 * uiStatic.scaleY, dot, dot, grayed ? clrInkDim : 0xFFFFFFFF );
+		UI_DrawPic( dx, py + 3 * uiStatic.scaleY, dot, dot, grayed ? clrInkDim : 0xFFFFFFFF,
+			DotPic(), QM_DRAWTRANS );
 	}
 
 	const char *szCvar;
@@ -591,7 +593,7 @@ void CMenuContConfig::_Init()
 
 	static const char *fpsLabels[] = { "60", "72", "100", "120", "144", "165", "240", "Unlimited" };
 	static const float fpsValues[] = { 60, 72, 100, 120, 144, 165, 240, 0 };
-	fpsMax.SetNameAndStatus( "Frame Rate Limit", NULL );
+	fpsMax.SetNameAndStatus( "FPS Limit", NULL );
 	fpsMax.szHint = "72 is the original GoldSrc pacing";
 	fpsMax.Setup( "fps_max", fpsLabels, fpsValues, 8, 1 );
 	AddRow( TAB_ADVANCED, fpsMax, ROW_H );
@@ -604,7 +606,7 @@ void CMenuContConfig::_Init()
 	msaa.Setup( "gl_msaa_samples", msaaLabels, msaaValues, 4, 0 );
 	AddRow( TAB_ADVANCED, msaa, ROW_H );
 
-	fovAdjust.SetNameAndStatus( "Widescreen FOV Correction", NULL );
+	fovAdjust.SetNameAndStatus( "FOV Correction", NULL );
 	fovAdjust.szHint = "Adjusts the field of view for wide screens";
 	fovAdjust.Setup( "r_adjust_fov", 1 );
 	AddRow( TAB_ADVANCED, fovAdjust, ROW_H );
@@ -769,10 +771,9 @@ void CMenuContConfig::Draw()
 	const int titleH = 30 * uiStatic.scaleY;
 	const int subH = 12 * uiStatic.scaleY;
 
+	(void)subH;
 	UI_DrawString( fontTitle, tx, ty, ScreenWidth, titleH * 1.45f,
 		"CONFIGURATION", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
-	UI_DrawString( fontSmall, tx, ty + titleH + 8 * uiStatic.scaleY, ScreenWidth, subH * 1.45f,
-		"ONE CONFIG, EVERY GAME", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	// tab bar
 	static const char *tabNames[TAB_COUNT] = { "VIDEO", "AUDIO", "CONTROLS", "INTERFACE", "ADVANCED" };
@@ -798,8 +799,10 @@ void CMenuContConfig::Draw()
 
 	DrawGlyph( GLYPH_RB, x, tabY - 2 * uiStatic.scaleY, tabH * 1.3f );
 
-	// rows, clipped to the content viewport
-	EngFuncs::PIC_EnableScissor( 0, CONTENT_TOP * uiStatic.scaleY, ScreenWidth, ( CONTENT_BOTTOM - CONTENT_TOP ) * uiStatic.scaleY );
+	// rows, clipped to the content viewport (yOffset matters when the
+	// screen is narrower than 4:3 and the menu is letterboxed)
+	EngFuncs::PIC_EnableScissor( 0, ( CONTENT_TOP + uiStatic.yOffset ) * uiStatic.scaleY,
+		ScreenWidth, ( CONTENT_BOTTOM - CONTENT_TOP ) * uiStatic.scaleY );
 	CMenuFramework::Draw();
 	EngFuncs::PIC_DisableScissor();
 

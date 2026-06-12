@@ -54,6 +54,14 @@ void CMenuContRoot::QuitDialogCb()
 
 bool CMenuContRoot::KeyDown( int key )
 {
+	// the controller's menu/start button resumes a paused game, like Esc
+	if( key == K_START_BUTTON && CL_IsActive( ))
+	{
+		if( !dialog.IsVisible( ))
+			UI_CloseMenu();
+		return true;
+	}
+
 	if( UI::Key::IsEscape( key ))
 	{
 		if( CL_IsActive( ))

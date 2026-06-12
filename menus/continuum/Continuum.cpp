@@ -223,6 +223,36 @@ bool GameBackdrop( const char *folder, CImage &pic )
 
 /*
 ====================
+small shared textures
+====================
+*/
+static CImage &SharedPic( CImage &pic, const char *path )
+{
+	if( !pic.IsValid( ))
+		pic.Load( path );
+	return pic;
+}
+
+CImage &PillPic( void )
+{
+	static CImage pic;
+	return SharedPic( pic, "gfx/shell/continuum/pill.png" );
+}
+
+CImage &DotPic( void )
+{
+	static CImage pic;
+	return SharedPic( pic, "gfx/shell/continuum/dot.png" );
+}
+
+CImage &ChipCurrentPic( void )
+{
+	static CImage pic;
+	return SharedPic( pic, "gfx/shell/continuum/chip_current.png" );
+}
+
+/*
+====================
 CContButton
 ====================
 */
