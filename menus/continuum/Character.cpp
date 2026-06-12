@@ -211,7 +211,10 @@ void CMenuContCharacter::_VidInit()
 	y += itemH + gap;
 	show3D.SetRect( MARGIN, y, ROW_W, itemH );
 
-	view.SetRect( uiStatic.width - MARGIN - PANEL_W, 170, PANEL_W, 470 );
+	// the preview pane takes whatever fits right of the rows — never under them
+	const int panelX = Q_max( MARGIN + ROW_W + 32, (int)uiStatic.width - MARGIN - PANEL_W );
+	const int panelW = uiStatic.width - MARGIN - panelX;
+	view.SetRect( panelX, 200, panelW, 420 );
 
 	// theme the model viewport
 	view.backgroundColor = 0xC0101218u;
