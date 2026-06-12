@@ -23,7 +23,10 @@ GNU General Public License for more details.
 #include "FontManager.h"
 #include "keydefs.h"
 
-void UI_MainClassic_Menu( void ); // the stock main menu (menus/Main.cpp)
+void UI_MainClassic_Menu( void );        // the stock main menu (menus/Main.cpp)
+void UI_AdvSettings2_FocusUiToggle( void ); // classic page with the menu toggle focused
+void UI_ContConfig_FocusUiToggle( void );   // Continuum config ditto
+extern bool g_bUiFamilySwitch;           // set by the toggles, read by UI_Main_Menu
 
 // the screens, shown via these (UI_Main_Menu lives in RootMenu.cpp)
 void UI_ContGamePicker_Menu( void );

@@ -91,6 +91,10 @@ private:
 	void _Init() override;
 	void _VidInit() override;
 
+public:
+	void FocusUiToggle(); // land on the Interface tab with Classic Menu focused
+
+private:
 	enum ETab { TAB_VIDEO = 0, TAB_AUDIO, TAB_CONTROLS, TAB_INTERFACE, TAB_ADVANCED, TAB_COUNT };
 
 	void SetTab( int tab );
@@ -333,8 +337,17 @@ void CMenuContConfig::_Init()
 	crosshairToggle.Setup( "crosshair", 1 );
 
 	classicUi.SetNameAndStatus( "Classic Menu", NULL );
-	classicUi.szHint = "The original menu style - applies next time the menu opens";
+	classicUi.szHint = "Switch to the original menu style";
 	classicUi.Setup( "ui_classic", 0 );
+	// the row writes the cvar before QM_CHANGED fires; rebuild the menu so
+	// the switch happens right now, not on the next menu open
+	SET_EVENT_MULTI( classicUi.onChanged,
+	{
+		(void)pSelf; (void)pExtra;
+		g_bUiFamilySwitch = true;
+		UI_CloseMenu();
+		UI_SetActiveMenu( true );
+	});
 
 	AddRow( TAB_INTERFACE, glyphStyle, ROW_H );
 	AddRow( TAB_INTERFACE, glyphPreview, ROW_H );
@@ -907,7 +920,34 @@ void CMenuContConfig::Draw()
 	}
 }
 
+void CMenuContConfig::FocusUiToggle()
+{
+	SetTab( TAB_INTERFACE );
+
+	for( int i = 0; i < m_pItems.Count(); i++ )
+	{
+		if( m_pItems[i] == &classicUi )
+		{
+			SetCursor( i );
+			break;
+		}
+	}
+}
+
 ADD_MENU( menu_continuum_config, CMenuContConfig, UI_ContConfig_Menu );
+
+/*
+================
+UI_ContConfig_FocusUiToggle
+
+family-switch landing spot: the Interface tab with Classic Menu focused
+================
+*/
+void UI_ContConfig_FocusUiToggle( void )
+{
+	UI_ContConfig_Menu();
+	menu_continuum_config->FocusUiToggle();
+}
 
 /*
 ====================

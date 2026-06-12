@@ -288,17 +288,29 @@ void CMenuContRoot::Draw()
 }
 
 // UI_Main_Menu picks the menu family: the Continuum root by default, the
-// classic menu when ui_classic is set. The stack is cleared whenever the
-// menu closes, so flipping the cvar takes effect on the next visit — no
-// restart needed
+// classic menu when ui_classic is set. The toggles rebuild the menu through
+// here immediately (no restart), and when they do, land straight on the
+// OTHER family's page with its menu-style toggle focused so the user can
+// keep flipping back and forth with the activate button
+bool g_bUiFamilySwitch = false;
+
 ADD_MENU3( menu_main, CMenuContRoot, UI_Main_Menu );
 void UI_Main_Menu( void )
 {
-	if( EngFuncs::GetCvarFloat( "ui_classic" ) != 0.0f )
-	{
-		UI_MainClassic_Menu();
-		return;
-	}
+	const bool classic = EngFuncs::GetCvarFloat( "ui_classic" ) != 0.0f;
 
-	menu_main->Show();
+	if( classic )
+		UI_MainClassic_Menu();
+	else
+		menu_main->Show();
+
+	if( g_bUiFamilySwitch )
+	{
+		g_bUiFamilySwitch = false;
+
+		if( classic )
+			UI_AdvSettings2_FocusUiToggle();
+		else
+			UI_ContConfig_FocusUiToggle();
+	}
 }

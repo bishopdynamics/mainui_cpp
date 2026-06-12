@@ -1,5 +1,5 @@
 /*
-AdvancedSettings.cpp -- classic-style page exposing the Continuum advanced
+AdvancedSettings.cpp -- classic-style pages exposing the Continuum advanced
 settings, so the original menu has feature parity with the new one
 Copyright (C) 2026 a1batross, James Bishop
 
@@ -24,45 +24,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 #define ART_BANNER "gfx/shell/head_advanced"
 
-class CMenuAdvSettings : public CMenuFramework
-{
-public:
-	CMenuAdvSettings() : CMenuFramework( "CMenuAdvSettings" ) { }
-
-private:
-	void _Init() override;
-	void _VidInit() override;
-	void GetConfig();
-	void WriteAniso();
-	void WriteMsaa();
-	void WriteFps();
-
-	// column A: toggles
-	CMenuCheckBox levelStreaming;
-	CMenuCheckBox detailTex;
-	CMenuCheckBox overbright;
-	CMenuCheckBox dynLights;
-	CMenuCheckBox shadows;
-	CMenuCheckBox lightExt;
-	CMenuCheckBox ripple;
-	CMenuCheckBox litWater;
-	CMenuCheckBox fovAdjust;
-	CMenuCheckBox texNearest;
-	CMenuCheckBox lmNearest;
-	CMenuCheckBox conEnable;
-
-	// column B: spins and sliders
-	CMenuSpinControl aniso;
-	CMenuSpinControl msaa;
-	CMenuSpinControl fpsMax;
-	CMenuSpinControl renderScale;
-	CMenuSpinControl decals;
-	CMenuSlider ambient;
-	CMenuSlider lodBias;
-	CMenuSlider conFontSize;
-	CMenuCheckBox conTtf;
-	CMenuCheckBox classicUi;
-};
+void UI_AdvSettings2_Menu( void );
+extern bool g_bUiFamilySwitch; // menus/continuum/RootMenu.cpp
 
 static const char *g_szAnisoNames[] = { "off", "2x", "4x", "8x", "16x" };
 static const float g_flAnisoValues[] = { 1, 2, 4, 8, 16 };
@@ -88,6 +51,44 @@ static int NearestIndex( float value, const float *values, int count )
 	return best;
 }
 
+/*
+====================
+page 1: renderer
+====================
+*/
+class CMenuAdvSettings : public CMenuFramework
+{
+public:
+	CMenuAdvSettings() : CMenuFramework( "CMenuAdvSettings" ) { }
+
+private:
+	void _Init() override;
+	void _VidInit() override;
+	void GetConfig();
+	void WriteAniso();
+	void WriteMsaa();
+	void WriteFps();
+
+	CMenuCheckBox detailTex;
+	CMenuCheckBox overbright;
+	CMenuCheckBox dynLights;
+	CMenuCheckBox shadows;
+	CMenuCheckBox lightExt;
+	CMenuCheckBox ripple;
+	CMenuCheckBox litWater;
+	CMenuCheckBox fovAdjust;
+	CMenuCheckBox texNearest;
+	CMenuCheckBox lmNearest;
+
+	CMenuSpinControl aniso;
+	CMenuSpinControl msaa;
+	CMenuSpinControl fpsMax;
+	CMenuSpinControl renderScale;
+	CMenuSpinControl decals;
+	CMenuSlider ambient;
+	CMenuSlider lodBias;
+};
+
 void CMenuAdvSettings::WriteAniso()
 {
 	EngFuncs::CvarSetValue( "gl_anisotropy", g_flAnisoValues[(int)aniso.GetCurrentValue()] );
@@ -108,7 +109,6 @@ void CMenuAdvSettings::WriteFps()
 
 void CMenuAdvSettings::GetConfig()
 {
-	levelStreaming.LinkCvar( "host_level_streaming" );
 	detailTex.LinkCvar( "r_detailtextures" );
 	overbright.LinkCvar( "gl_overbright" );
 	dynLights.LinkCvar( "r_dynamic" );
@@ -119,15 +119,11 @@ void CMenuAdvSettings::GetConfig()
 	fovAdjust.LinkCvar( "r_adjust_fov" );
 	texNearest.LinkCvar( "gl_texture_nearest" );
 	lmNearest.LinkCvar( "gl_lightmap_nearest" );
-	conEnable.LinkCvar( "con_enable" );
-	conTtf.LinkCvar( "con_ttffont" );
-	classicUi.LinkCvar( "ui_classic" );
 
 	renderScale.LinkCvar( "vid_scale", CMenuEditable::CVAR_VALUE );
 	decals.LinkCvar( "r_decals", CMenuEditable::CVAR_VALUE );
 	ambient.LinkCvar( "r_lighting_ambient" );
 	lodBias.LinkCvar( "gl_texture_lodbias" );
-	conFontSize.LinkCvar( "con_fontscale" );
 
 	// list-mapped spins are written through the callbacks above
 	int i = NearestIndex( EngFuncs::GetCvarFloat( "gl_anisotropy" ), g_flAnisoValues, V_ARRAYSIZE( g_flAnisoValues ));
@@ -151,8 +147,6 @@ void CMenuAdvSettings::_Init()
 
 	banner.SetPicture( ART_BANNER );
 
-	// ---- column A: toggles, applied immediately ----
-	levelStreaming.SetNameAndStatus( "Level streaming", NULL );
 	detailTex.SetNameAndStatus( "Detail textures", NULL );
 	overbright.SetNameAndStatus( "Overbright lighting", NULL );
 	dynLights.SetNameAndStatus( "Dynamic lights", NULL );
@@ -163,27 +157,25 @@ void CMenuAdvSettings::_Init()
 	fovAdjust.SetNameAndStatus( "FOV correction", NULL );
 	texNearest.SetNameAndStatus( "Nearest texture filtering", NULL );
 	lmNearest.SetNameAndStatus( "Nearest lightmap filtering", NULL );
-	conEnable.SetNameAndStatus( "Enable console", NULL );
 
 	CMenuCheckBox *checks[] =
 	{
-		&levelStreaming, &detailTex, &overbright, &dynLights, &shadows, &lightExt,
-		&ripple, &litWater, &fovAdjust, &texNearest, &lmNearest, &conEnable
+		&detailTex, &overbright, &dynLights, &shadows, &lightExt,
+		&ripple, &litWater, &fovAdjust, &texNearest, &lmNearest
 	};
 
 	for( size_t n = 0; n < V_ARRAYSIZE( checks ); n++ )
 	{
 		checks[n]->bUpdateImmediately = true;
-		checks[n]->SetCoord( 300, 230 + (int)n * 44 );
+		checks[n]->SetCoord( 300, 230 + (int)n * 50 );
 		AddItem( *checks[n] );
 	}
 
-	// ---- column B: values ----
 	aniso.SetNameAndStatus( "Anisotropy", NULL );
 	aniso.Setup( &anisoModel );
 	aniso.onChanged = VoidCb( &CMenuAdvSettings::WriteAniso );
 
-	msaa.SetNameAndStatus( "Anti-aliasing", NULL );
+	msaa.SetNameAndStatus( "Anti-aliasing (restart)", NULL );
 	msaa.Setup( &msaaModel );
 	msaa.onChanged = VoidCb( &CMenuAdvSettings::WriteMsaa );
 
@@ -207,16 +199,6 @@ void CMenuAdvSettings::_Init()
 	lodBias.Setup( -2.0f, 0.0f, 0.25f );
 	lodBias.bUpdateImmediately = true;
 
-	conFontSize.SetNameAndStatus( "Console font size", NULL );
-	conFontSize.Setup( 1.0f, 2.5f, 0.1f );
-	conFontSize.bUpdateImmediately = true;
-
-	conTtf.SetNameAndStatus( "TrueType console font", NULL );
-	conTtf.bUpdateImmediately = true;
-
-	classicUi.SetNameAndStatus( "Classic menu", NULL );
-	classicUi.bUpdateImmediately = true;
-
 	AddItem( aniso );
 	AddItem( msaa );
 	AddItem( fpsMax );
@@ -224,34 +206,136 @@ void CMenuAdvSettings::_Init()
 	AddItem( decals );
 	AddItem( ambient );
 	AddItem( lodBias );
-	AddItem( conFontSize );
-	AddItem( conTtf );
-	AddItem( classicUi );
 
 	AddItem( banner );
+	AddButton( L( "Game & menu" ), L( "Streaming, console and menu-style settings" ), PC_ADV_OPT, UI_AdvSettings2_Menu, QMF_NOTIFY );
 	AddButton( L( "Done" ), L( "Go back to the previous menu" ), PC_DONE, VoidCb( &CMenuAdvSettings::Hide ), QMF_NOTIFY );
 }
 
 void CMenuAdvSettings::_VidInit()
 {
-	// columns: toggles at 300 (set in _Init), value spins at 700,
-	// sliders at 1010 — spin/slider labels render above the widget
+	// toggles at 300 (set in _Init), value spins at 760, sliders at 1060;
+	// spin/slider labels render above the widget
 	int y = 250;
 
-	aniso.SetRect( 700, y, 260, 32 );
-	msaa.SetRect( 700, y += 64, 260, 32 );
-	fpsMax.SetRect( 700, y += 64, 260, 32 );
-	renderScale.SetRect( 700, y += 64, 260, 32 );
-	decals.SetRect( 700, y += 64, 260, 32 );
-	conTtf.SetCoord( 700, y += 64 );
-	classicUi.SetCoord( 700, y += 44 );
+	aniso.SetRect( 760, y, 260, 32 );
+	msaa.SetRect( 760, y += 70, 260, 32 );
+	fpsMax.SetRect( 760, y += 70, 260, 32 );
+	renderScale.SetRect( 760, y += 70, 260, 32 );
+	decals.SetRect( 760, y += 70, 260, 32 );
 
-	y = 250;
-	ambient.SetCoord( 1010, y );
-	lodBias.SetCoord( 1010, y += 64 );
-	conFontSize.SetCoord( 1010, y += 64 );
+	ambient.SetCoord( 1060, 250 );
+	lodBias.SetCoord( 1060, 320 );
 
 	GetConfig();
 }
 
 ADD_MENU( menu_advsettings, CMenuAdvSettings, UI_AdvSettings_Menu );
+
+/*
+====================
+page 2: game, console and menu style
+====================
+*/
+class CMenuAdvSettings2 : public CMenuFramework
+{
+public:
+	CMenuAdvSettings2() : CMenuFramework( "CMenuAdvSettings2" ) { }
+
+	void FocusUiToggle();
+
+private:
+	void _Init() override;
+	void _VidInit() override;
+	void ToggleUiFamily();
+
+	CMenuCheckBox levelStreaming;
+	CMenuCheckBox conEnable;
+	CMenuCheckBox conTtf;
+	CMenuCheckBox classicUi;
+	CMenuSlider conFontSize;
+};
+
+void CMenuAdvSettings2::ToggleUiFamily()
+{
+	// write the cvar ourselves: onChanged can fire before the immediate
+	// write, and the menu rebuild below must see the new value
+	EngFuncs::CvarSetValue( "ui_classic", classicUi.bChecked ? 1.0f : 0.0f );
+
+	g_bUiFamilySwitch = true;
+	UI_CloseMenu();
+	UI_SetActiveMenu( true ); // reopens through UI_Main_Menu -> new family
+}
+
+void CMenuAdvSettings2::FocusUiToggle()
+{
+	FOR_EACH_VEC( m_pItems, i )
+	{
+		if( m_pItems[i] == &classicUi )
+		{
+			SetCursor( i );
+			break;
+		}
+	}
+}
+
+void CMenuAdvSettings2::_Init()
+{
+	banner.SetPicture( ART_BANNER );
+
+	levelStreaming.SetNameAndStatus( "Level streaming", NULL );
+	levelStreaming.bUpdateImmediately = true;
+
+	conEnable.SetNameAndStatus( "Enable console", NULL );
+	conEnable.bUpdateImmediately = true;
+
+	conTtf.SetNameAndStatus( "TrueType console font", NULL );
+	conTtf.bUpdateImmediately = true;
+
+	classicUi.SetNameAndStatus( "Classic menu", NULL );
+	classicUi.onChanged = VoidCb( &CMenuAdvSettings2::ToggleUiFamily );
+
+	conFontSize.SetNameAndStatus( "Console font size", NULL );
+	conFontSize.Setup( 1.0f, 2.5f, 0.1f );
+	conFontSize.bUpdateImmediately = true;
+
+	AddItem( levelStreaming );
+	AddItem( conEnable );
+	AddItem( conTtf );
+	AddItem( classicUi );
+	AddItem( conFontSize );
+
+	AddItem( banner );
+	AddButton( L( "Done" ), L( "Go back to the previous menu" ), PC_DONE, VoidCb( &CMenuAdvSettings2::Hide ), QMF_NOTIFY );
+}
+
+void CMenuAdvSettings2::_VidInit()
+{
+	levelStreaming.SetCoord( 360, 230 );
+	conEnable.SetCoord( 360, 300 );
+	conTtf.SetCoord( 360, 370 );
+	classicUi.SetCoord( 360, 440 );
+	conFontSize.SetCoord( 360, 550 );
+
+	levelStreaming.LinkCvar( "host_level_streaming" );
+	conEnable.LinkCvar( "con_enable" );
+	conTtf.LinkCvar( "con_ttffont" );
+	classicUi.LinkCvar( "ui_classic" );
+	conFontSize.LinkCvar( "con_fontscale" );
+}
+
+ADD_MENU( menu_advsettings2, CMenuAdvSettings2, UI_AdvSettings2_Menu );
+
+/*
+================
+UI_AdvSettings2_FocusUiToggle
+
+family-switch landing spot: this page with the menu-style toggle focused,
+so the activate button can flip the menu family back again immediately
+================
+*/
+void UI_AdvSettings2_FocusUiToggle( void )
+{
+	UI_AdvSettings2_Menu();
+	menu_advsettings2->FocusUiToggle();
+}
