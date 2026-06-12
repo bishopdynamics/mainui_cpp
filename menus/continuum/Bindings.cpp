@@ -56,6 +56,8 @@ private:
 		char bind[64];   // empty = section header
 		char key1[24];
 		char key2[24];
+		int key1num;     // raw keynums for glyph lookup, -1 = unbound
+		int key2num;
 		int baseY;       // logical y inside the list, before scroll
 		int height;
 	};
@@ -138,6 +140,15 @@ void CMenuContBindings::Refresh()
 		Q_strncpy( r.bind, e.bind, sizeof( r.bind ));
 		StripColors( e.first, r.key1, sizeof( r.key1 ));
 		StripColors( e.second, r.key2, sizeof( r.key2 ));
+
+		r.key1num = r.key2num = -1;
+		if( e.bind[0] )
+		{
+			int keys[2];
+			CMenuKbActListModel::LookupBoundKeys( e.bind, keys );
+			r.key1num = keys[0];
+			r.key2num = keys[1];
+		}
 
 		r.height = e.bind[0] ? ROW_H : HEADER_H;
 		r.baseY = y;
@@ -256,12 +267,6 @@ void CMenuContBindings::EnterGrab()
 	if( !m_Rows.IsValidIndex( m_iSel ) || !m_Rows[m_iSel].bind[0] )
 		return;
 
-	// both slots taken: clear them so the new key becomes the primary
-	int keys[2];
-	CMenuKbActListModel::LookupBoundKeys( m_Rows[m_iSel].bind, keys );
-	if( keys[1] != -1 )
-		UnbindCommand( m_Rows[m_iSel].bind );
-
 	m_bGrab = true;
 	EngFuncs::PlayLocalSound( uiStatic.sounds[SND_KEY] );
 }
@@ -283,6 +288,13 @@ void CMenuContBindings::BindGrabbedKey( int key )
 		Refresh();
 		return;
 	}
+
+	// both slots already taken by other keys: this binding replaces them.
+	// Only now — cancelling the grab must never touch the existing keys
+	int keys[2];
+	CMenuKbActListModel::LookupBoundKeys( m_Rows[m_iSel].bind, keys );
+	if( keys[1] != -1 && key != keys[0] && key != keys[1] )
+		UnbindCommand( m_Rows[m_iSel].bind );
 
 	EngFuncs::ClientCmdF( true, "bind \"%s\" \"%s\"\n",
 		EngFuncs::KeynumToString( key ), m_Rows[m_iSel].bind );
@@ -488,9 +500,9 @@ void CMenuContBindings::Draw()
 	const int subH = 12 * uiStatic.scaleY;
 
 	UI_DrawString( fontTitle, tx, ty, ScreenWidth, titleH * 1.45f,
-		"BINDINGS", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+		"INPUT BINDINGS", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 	UI_DrawString( fontSmall, tx, ty + titleH + 8 * uiStatic.scaleY, ScreenWidth, subH * 1.45f,
-		"KEYBOARD & MOUSE - SHARED BY ALL GAMES", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+		"KEYBOARD, MOUSE & GAMEPAD - SHARED BY ALL GAMES", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	// column captions above the key columns
 	const int capH = 11 * uiStatic.scaleY;
@@ -543,17 +555,34 @@ void CMenuContBindings::Draw()
 			labelH * 1.45f, r.label, sel ? clrInk : clrInkDim, labelH, QM_LEFT,
 			ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
 
-		// bound keys: primary bright, alternate dim
+		// bound keys: primary bright, alternate dim; pad buttons draw as the
+		// controller glyph the rest of the UI uses
 		const int keyH = 14 * uiStatic.scaleY;
-		const char *k1 = r.key1[0] ? r.key1 : "-";
-		const char *k2 = r.key2[0] ? r.key2 : "-";
+		const int glyphH = 24 * uiStatic.scaleY;
+		const struct { const char *text; int keynum; bool bright; int colX; } cols[2] =
+		{
+			{ r.key1, r.key1num, sel, KEY1_X },
+			{ r.key2, r.key2num, false, KEY2_X },
+		};
 
-		UI_DrawString( fontBody, x + KEY1_X * uiStatic.scaleX, y + ( h - keyH ) / 2, KEYCOL_W * uiStatic.scaleX,
-			keyH * 1.45f, k1, r.key1[0] ? ( sel ? clrInk : clrInkDim ) : clrInkFaint, keyH, QM_CENTER,
-			ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
-		UI_DrawString( fontBody, x + KEY2_X * uiStatic.scaleX, y + ( h - keyH ) / 2, KEYCOL_W * uiStatic.scaleX,
-			keyH * 1.45f, k2, r.key2[0] ? clrInkDim : clrInkFaint, keyH, QM_CENTER,
-			ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
+		for( int c = 0; c < 2; c++ )
+		{
+			const int cx = x + cols[c].colX * uiStatic.scaleX;
+			const int colW = KEYCOL_W * uiStatic.scaleX;
+			const EGlyph g = cols[c].keynum >= 0 ? KeyToGlyph( cols[c].keynum ) : GLYPH_COUNT;
+			const int gw = GlyphWidth( g, glyphH );
+
+			if( gw )
+			{
+				DrawGlyph( g, cx + ( colW - gw ) / 2, y + ( h - glyphH ) / 2, glyphH );
+				continue;
+			}
+
+			const char *text = cols[c].text[0] ? cols[c].text : "-";
+			unsigned int color = !cols[c].text[0] ? clrInkFaint : ( cols[c].bright ? clrInk : clrInkDim );
+			UI_DrawString( fontBody, cx, y + ( h - keyH ) / 2, colW, keyH * 1.45f,
+				text, color, keyH, QM_CENTER, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
+		}
 	}
 
 	EngFuncs::PIC_DisableScissor();

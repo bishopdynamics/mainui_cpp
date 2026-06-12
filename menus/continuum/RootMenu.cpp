@@ -33,8 +33,11 @@ private:
 	void _VidInit() override;
 
 	void QuitDialogCb();
+	void LeaveGameCb();
+	void LayoutRows();
 
 	CContButton resumeGame;
+	CContButton leaveGame;
 	CContButton game;
 	CContButton configuration;
 	CContButton quit;
@@ -43,12 +46,27 @@ private:
 
 	CImage backdrop;
 	CImage lambda;
+	bool m_bLastConnected = false;
 };
 
 void CMenuContRoot::QuitDialogCb()
 {
 	dialog.SetMessage( L( "GameUI_QuitConfirmationText" ));
 	dialog.onPositive.SetCommand( false, "quit\n" );
+	dialog.Show();
+}
+
+void CMenuContRoot::LeaveGameCb()
+{
+	// multiplayer: nothing to lose, just leave; singleplayer: confirm first
+	if( gpGlobals->maxClients > 1 )
+	{
+		EngFuncs::ClientCmd( false, "disconnect\n" );
+		return;
+	}
+
+	dialog.SetMessage( "Leave the current game? Progress since your last save will be lost." );
+	dialog.onPositive.SetCommand( false, "disconnect\n" );
 	dialog.Show();
 }
 
@@ -122,6 +140,9 @@ void CMenuContRoot::_Init()
 	resumeGame.SetNameAndStatus( L( "GameUI_GameMenu_ResumeGame" ), NULL );
 	resumeGame.onReleased = UI_CloseMenu;
 
+	leaveGame.SetNameAndStatus( "Main Menu", NULL );
+	leaveGame.onReleased = VoidCb( &CMenuContRoot::LeaveGameCb );
+
 	game.SetNameAndStatus( "Game", NULL );
 	SET_EVENT( game.onReleased, UI_ContGamePicker_Menu( ));
 
@@ -134,9 +155,40 @@ void CMenuContRoot::_Init()
 	dialog.Link( this );
 
 	AddItem( resumeGame );
+	AddItem( leaveGame );
 	AddItem( game );
 	AddItem( configuration );
 	AddItem( quit );
+}
+
+void CMenuContRoot::LayoutRows()
+{
+	const bool connected = CL_IsActive();
+	m_bLastConnected = connected;
+
+	resumeGame.SetVisibility( connected );
+	leaveGame.SetVisibility( connected );
+	leaveGame.szName = gpGlobals->maxClients > 1 ? "Disconnect" : "Main Menu";
+
+	int y = 300;
+	const int itemH = 64, gap = 6;
+
+	if( connected )
+	{
+		resumeGame.SetRect( MARGIN, y, 420, itemH );
+		y += itemH + gap;
+		leaveGame.SetRect( MARGIN, y, 420, itemH );
+		y += itemH + gap;
+	}
+	game.SetRect( MARGIN, y, 420, itemH );
+	y += itemH + gap;
+	configuration.SetRect( MARGIN, y, 420, itemH );
+	y += itemH + gap;
+	quit.SetRect( MARGIN, y, 420, itemH );
+
+	// SetRect only stores logical coords; rescale them now
+	CalcItemsPositions();
+	CalcItemsSizes();
 }
 
 void CMenuContRoot::_VidInit()
@@ -146,26 +198,31 @@ void CMenuContRoot::_VidInit()
 
 	GameBackdrop( gMenu.m_gameinfo.gamefolder, backdrop );
 
-	const bool connected = CL_IsActive();
-	resumeGame.SetVisibility( connected );
-
-	int y = 300;
-	const int itemH = 64, gap = 6;
-
-	if( connected )
-	{
-		resumeGame.SetRect( MARGIN, y, 420, itemH );
-		y += itemH + gap;
-	}
-	game.SetRect( MARGIN, y, 420, itemH );
-	y += itemH + gap;
-	configuration.SetRect( MARGIN, y, 420, itemH );
-	y += itemH + gap;
-	quit.SetRect( MARGIN, y, 420, itemH );
+	LayoutRows();
 }
 
 void CMenuContRoot::Draw()
 {
+	// the in-game rows (Resume / Main Menu) come and go with the connection,
+	// e.g. right after Main Menu disconnects while this screen stays up
+	if( CL_IsActive() != m_bLastConnected )
+	{
+		LayoutRows();
+
+		CMenuBaseItem *cur = ItemAtCursor();
+		if( !cur || !cur->IsVisible( ))
+		{
+			for( int i = 0; i < m_pItems.Count(); i++ )
+			{
+				if( m_pItems[i]->IsVisible() && !FBitSet( m_pItems[i]->iFlags, QMF_INACTIVE ))
+				{
+					SetCursor( i );
+					break;
+				}
+			}
+		}
+	}
+
 	DrawBackdrop( backdrop );
 
 	// brand line

@@ -198,7 +198,7 @@ static void LoadGlyphs( void )
 	Q_strncpy( g_szGlyphLoadedStyle, style, sizeof( g_szGlyphLoadedStyle ));
 }
 
-int DrawGlyph( EGlyph g, int x, int y, int h )
+int GlyphWidth( EGlyph g, int h )
 {
 	if( g < 0 || g >= GLYPH_COUNT )
 		return 0;
@@ -211,10 +211,31 @@ int DrawGlyph( EGlyph g, int x, int y, int h )
 
 	const int pw = EngFuncs::PIC_Width( pic.Handle() );
 	const int ph = EngFuncs::PIC_Height( pic.Handle() );
-	const int w = ph > 0 ? h * pw / ph : h;
+	return ph > 0 ? h * pw / ph : h;
+}
 
-	UI_DrawPic( x, y, w, h, 0xFFFFFFFF, pic );
+int DrawGlyph( EGlyph g, int x, int y, int h )
+{
+	const int w = GlyphWidth( g, h );
+	if( !w )
+		return 0;
+
+	UI_DrawPic( x, y, w, h, 0xFFFFFFFF, g_GlyphPics[g] );
 	return w;
+}
+
+EGlyph KeyToGlyph( int key )
+{
+	switch( key )
+	{
+	case K_A_BUTTON:  return GLYPH_A;
+	case K_B_BUTTON:  return GLYPH_B;
+	case K_X_BUTTON:  return GLYPH_X;
+	case K_Y_BUTTON:  return GLYPH_Y;
+	case K_L1_BUTTON: return GLYPH_LB;
+	case K_R1_BUTTON: return GLYPH_RB;
+	}
+	return GLYPH_COUNT;
 }
 
 // last-drawn legend entry hitboxes, for LegendClickKey

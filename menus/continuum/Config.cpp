@@ -142,7 +142,7 @@ private:
 	CContSliderRow volMaster, volMusic, volSuit;
 
 	// controls
-	CContHeader hdrMouse, hdrKeys, hdrPad, hdrGyro;
+	CContHeader hdrMouse, hdrPad, hdrGyro;
 	CContSliderRow sensitivity;
 	CContInvertRow invertLook;
 	CContToggleRow rawInput, mouseFilter, autoAim;
@@ -237,10 +237,15 @@ void CMenuContConfig::_Init()
 	AddRow( TAB_AUDIO, volSuit, ROW_H );
 
 	// ---- controls ----
-	hdrMouse.SetNameAndStatus( "MOUSE", NULL );
+	hdrMouse.SetNameAndStatus( "INPUT", NULL );
 	AddRow( TAB_CONTROLS, hdrMouse, HEADER_H );
 
-	sensitivity.SetNameAndStatus( "Sensitivity", NULL );
+	keyBindings.SetNameAndStatus( "Input Bindings", NULL );
+	keyBindings.szHint = "Rebind every action - keyboard, mouse and gamepad";
+	keyBindings.onReleased = UI_ContBindings_Menu;
+	AddRow( TAB_CONTROLS, keyBindings, ROW_H );
+
+	sensitivity.SetNameAndStatus( "Mouse Sensitivity", NULL );
 	sensitivity.Setup( "sensitivity", 0.1f, 10.0f, 0.1f, 3.0f, 1 );
 	AddRow( TAB_CONTROLS, sensitivity, ROW_H );
 
@@ -263,14 +268,6 @@ void CMenuContConfig::_Init()
 	autoAim.szHint = "The original console-style aim assist";
 	autoAim.Setup( "sv_aim", 0 );
 	AddRow( TAB_CONTROLS, autoAim, ROW_H );
-
-	hdrKeys.SetNameAndStatus( "KEYBOARD", NULL );
-	AddRow( TAB_CONTROLS, hdrKeys, HEADER_H );
-
-	keyBindings.SetNameAndStatus( "Keyboard & Mouse Bindings", NULL );
-	keyBindings.szHint = "Rebind every action";
-	keyBindings.onReleased = UI_ContBindings_Menu;
-	AddRow( TAB_CONTROLS, keyBindings, ROW_H );
 
 	hdrPad.SetNameAndStatus( "GAMEPAD", NULL );
 	AddRow( TAB_CONTROLS, hdrPad, HEADER_H );

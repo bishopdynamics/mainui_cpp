@@ -86,6 +86,8 @@ enum EGlyph
 };
 const char *GlyphStyle( void );        // resolved style: xbox/ps/switch/deck/kb
 int DrawGlyph( EGlyph g, int x, int y, int h ); // returns advance width
+int GlyphWidth( EGlyph g, int h );     // width DrawGlyph would use; 0 if missing
+EGlyph KeyToGlyph( int key );          // engine keynum -> glyph, GLYPH_COUNT if none
 
 struct LegendEntry
 {
