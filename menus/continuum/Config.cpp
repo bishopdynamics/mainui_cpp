@@ -165,7 +165,7 @@ private:
 	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf, hdrConsole;
 	CContToggleRow levelStreaming;
 	CContSpinRow aniso, texFilter, lmFilter;
-	CContToggleRow detailTex, overbright, dynLights, shadows, lightExt, ripple, litWater, fovAdjust;
+	CContToggleRow detailTex, overbright, dynLights, shadows, lightExt, ripple, litWater, fovAdjust, conEnable;
 	CContSliderRow ambient, lodBias, conFontSize;
 	CContSpinRow decals, fpsMax, renderScale, conFont;
 	CContMsaaRow msaa;
@@ -467,6 +467,11 @@ void CMenuContConfig::_Init()
 
 	hdrConsole.SetNameAndStatus( "CONSOLE", NULL );
 	AddRow( TAB_ADVANCED, hdrConsole, HEADER_H );
+
+	conEnable.SetNameAndStatus( "Enable Console", NULL );
+	conEnable.szHint = "Open with the tilde key while playing";
+	conEnable.Setup( "con_enable", 0 );
+	AddRow( TAB_ADVANCED, conEnable, ROW_H );
 
 	static const char *conFontLabels[] = { "Classic", "Modern" };
 	static const float conFontValues[] = { 0, 1 };
