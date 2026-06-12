@@ -162,11 +162,11 @@ private:
 	CContToggleRow showFps, showMapName, crosshairToggle;
 
 	// advanced
-	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf;
+	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf, hdrConsole;
 	CContToggleRow levelStreaming;
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow detailTex, overbright, dynLights, shadows, lightExt, ripple, litWater, fovAdjust;
-	CContSliderRow ambient, lodBias;
+	CContSliderRow ambient, lodBias, conFontSize;
 	CContSpinRow decals, fpsMax, renderScale;
 	CContMsaaRow msaa;
 };
@@ -464,6 +464,14 @@ void CMenuContConfig::_Init()
 	lodBias.bCaution = true;
 	lodBias.Setup( "gl_texture_lodbias", -2.0f, 0.0f, 0.25f, 0.0f, 2 );
 	AddRow( TAB_ADVANCED, lodBias, ROW_H );
+
+	hdrConsole.SetNameAndStatus( "CONSOLE", NULL );
+	AddRow( TAB_ADVANCED, hdrConsole, HEADER_H );
+
+	conFontSize.SetNameAndStatus( "Console Font Size", NULL );
+	conFontSize.szHint = "Applies immediately";
+	conFontSize.Setup( "con_fontscale", 1.0f, 2.5f, 0.1f, 1.0f, 1 );
+	AddRow( TAB_ADVANCED, conFontSize, ROW_H );
 
 	SetTab( TAB_VIDEO );
 }
