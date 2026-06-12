@@ -106,6 +106,14 @@ bool CMenuContGamePage::KeyDown( int key )
 		Hide();
 		return true;
 	}
+
+	if( key == K_MOUSE1 )
+	{
+		const int legendKey = Cont::LegendClickKey();
+		if( legendKey )
+			return KeyDown( legendKey );
+	}
+
 	return CMenuFramework::KeyDown( key );
 }
 
@@ -189,13 +197,10 @@ void CMenuContGamePage::Draw()
 	const int tx = MARGIN * uiStatic.scaleX;
 	int ty = 96 * uiStatic.scaleY;
 	const int titleH = 34 * uiStatic.scaleY;
-	const int metaH = 12 * uiStatic.scaleY;
+
 
 	UI_DrawString( fontBrand, tx, ty, ScreenWidth * 0.45f, titleH * 2.9f,
 		gMenu.m_gameinfo.title, clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
-
-	UI_DrawString( fontSmall, tx, ty + titleH * 2.4f, ScreenWidth, metaH * 1.45f,
-		szMeta, clrInkDim, metaH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	// the game's own art, aspect-fit in a right-side frame
 	if( art.IsValid( ))

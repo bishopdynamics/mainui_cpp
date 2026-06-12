@@ -73,6 +73,14 @@ bool CMenuContRoot::KeyDown( int key )
 			QuitDialogCb();
 		return true;
 	}
+
+	if( key == K_MOUSE1 )
+	{
+		const int legendKey = Cont::LegendClickKey();
+		if( legendKey )
+			return KeyDown( legendKey );
+	}
+
 	return CMenuFramework::KeyDown( key );
 }
 

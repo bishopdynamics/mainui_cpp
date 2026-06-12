@@ -226,6 +226,10 @@ bool CMenuContGamePicker::KeyDown( int key )
 
 	if( key == K_MOUSE1 )
 	{
+		const int legendKey = Cont::LegendClickKey();
+		if( legendKey )
+			return KeyDown( legendKey );
+
 		for( int i = 0; i < m_iCount; i++ )
 		{
 			int x, y, w, h;
@@ -358,7 +362,7 @@ void CMenuContGamePicker::Draw()
 		{ GLYPH_A, GLYPH_COUNT, "Select" },
 		{ GLYPH_B, GLYPH_COUNT, "Back" },
 	};
-	DrawLegend( legend, V_ARRAYSIZE( legend ), "SWITCHING GAME RESTARTS THE ENGINE" );
+	DrawLegend( legend, V_ARRAYSIZE( legend ), "SWITCHING CAMPAIGNS REQUIRES RESTART" );
 }
 
 ADD_MENU( menu_continuum_games, CMenuContGamePicker, UI_ContGamePicker_Menu );

@@ -810,6 +810,11 @@ void CMenuContConfig::_Init()
 	padDeadzone.SetupMulti( dzCvars, 4, 0, 16384, 512, 8192, 0 );
 	AddRow( TAB_CONTROLS, padDeadzone, ROW_H );
 
+	gamepadOptions.SetNameAndStatus( "Advanced Gamepad Options", NULL );
+	gamepadOptions.szHint = "Axis remapping and the rest of the engine's options";
+	gamepadOptions.onReleased = UI_GamePad_Menu;
+	AddRow( TAB_CONTROLS, gamepadOptions, ROW_H );
+
 	hdrGyro.SetNameAndStatus( "GYRO", NULL );
 	AddRow( TAB_CONTROLS, hdrGyro, HEADER_H );
 
@@ -827,11 +832,6 @@ void CMenuContConfig::_Init()
 	gyroCalibrate.szHint = "Put the controller on a flat surface first";
 	gyroCalibrate.onReleased.SetCommand( false, "joy_calibrate_gyro\n" );
 	AddRow( TAB_CONTROLS, gyroCalibrate, ROW_H );
-
-	gamepadOptions.SetNameAndStatus( "Advanced Gamepad Options", NULL );
-	gamepadOptions.szHint = "Axis remapping and the rest of the engine's options";
-	gamepadOptions.onReleased = UI_GamePad_Menu;
-	AddRow( TAB_CONTROLS, gamepadOptions, ROW_H );
 
 	// ---- interface ----
 	static const char *glyphLabels[] = { "Auto", "Xbox", "PlayStation", "Switch", "Steam Deck", "Keyboard" };
@@ -1006,6 +1006,15 @@ void CMenuContConfig::ReloadVideoRows()
 		modes[count++] = mode;
 	}
 
+	// the engine enumerates high -> low; present low on the left, high on
+	// the right (option i maps to engine mode count-1-i)
+	for( int i = 0; i < count / 2; i++ )
+	{
+		const char *t = modes[i];
+		modes[i] = modes[count - 1 - i];
+		modes[count - 1 - i] = t;
+	}
+
 	resolution.SetOptions( modes, count );
 
 	// vid_mode can be stale; trust the actual window size when it's in the list
@@ -1013,7 +1022,7 @@ void CMenuContConfig::ReloadVideoRows()
 	snprintf( current, sizeof( current ), "%ix%i",
 		(int)EngFuncs::GetCvarFloat( "width" ), (int)EngFuncs::GetCvarFloat( "height" ));
 
-	int applied = (int)EngFuncs::GetCvarFloat( "vid_mode" );
+	int applied = count - 1 - (int)EngFuncs::GetCvarFloat( "vid_mode" );
 	for( int i = 0; i < count; i++ )
 	{
 		if( !stricmp( modes[i], current ))
@@ -1040,7 +1049,7 @@ void CMenuContConfig::ApplyVideo()
 	if( windowMode.HasPending( ))
 		EngFuncs::CvarSetValue( "fullscreen", windowMode.iPending );
 	if( resolution.HasPending( ))
-		EngFuncs::ClientCmdF( true, "vid_setmode %i\n", resolution.iPending );
+		EngFuncs::ClientCmdF( true, "vid_setmode %i\n", resolution.nCount - 1 - resolution.iPending );
 
 	resolution.AcceptPending();
 	windowMode.AcceptPending();
@@ -1066,7 +1075,7 @@ void CMenuContConfig::RevertVideo()
 	bAwaitConfirm = false;
 
 	EngFuncs::CvarSetValue( "fullscreen", iRevertFS );
-	EngFuncs::ClientCmdF( true, "vid_setmode %i\n", iRevertMode );
+	EngFuncs::ClientCmdF( true, "vid_setmode %i\n", resolution.nCount - 1 - iRevertMode );
 
 	resolution.SetApplied( iRevertMode );
 	windowMode.SetApplied( iRevertFS );
@@ -1220,9 +1229,13 @@ bool CMenuContConfig::KeyDown( int key )
 		return true;
 	}
 
-	// clicking a tab name switches to it
+	// clicking a tab name switches to it; legend entries act as buttons
 	if( key == K_MOUSE1 )
 	{
+		const int legendKey = LegendClickKey();
+		if( legendKey )
+			return KeyDown( legendKey );
+
 		for( int i = 0; i < TAB_COUNT; i++ )
 		{
 			if( UI_CursorInRect( m_TabRects[i].x, m_TabRects[i].y, m_TabRects[i].w, m_TabRects[i].h ))
@@ -1268,9 +1281,10 @@ void CMenuContConfig::Draw()
 	const int titleH = 30 * uiStatic.scaleY;
 	const int subH = 12 * uiStatic.scaleY;
 
-	(void)subH;
 	UI_DrawString( fontTitle, tx, ty, ScreenWidth, titleH * 1.45f,
 		"CONFIGURATION", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	UI_DrawString( fontSmall, tx, ty + titleH + 8 * uiStatic.scaleY, ScreenWidth, subH * 1.45f,
+		"SHARED BY ALL GAMES", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	// tab bar
 	static const char *tabNames[TAB_COUNT] = { "VIDEO", "AUDIO", "CONTROLS", "INTERFACE", "ADVANCED" };
@@ -1360,7 +1374,7 @@ void CMenuContConfig::Draw()
 			{ GLYPH_LB, GLYPH_RB, "Section" },
 			{ GLYPH_X, GLYPH_COUNT, "Apply" },
 		};
-		DrawLegend( legend, V_ARRAYSIZE( legend ), "APPLIES TO ALL GAMES" );
+		DrawLegend( legend, V_ARRAYSIZE( legend ));
 	}
 	else
 	{
@@ -1371,7 +1385,7 @@ void CMenuContConfig::Draw()
 			{ GLYPH_LB, GLYPH_RB, "Section" },
 			{ GLYPH_X, GLYPH_COUNT, "Restore Defaults" },
 		};
-		DrawLegend( legend, V_ARRAYSIZE( legend ), "APPLIES TO ALL GAMES" );
+		DrawLegend( legend, V_ARRAYSIZE( legend ));
 	}
 }
 

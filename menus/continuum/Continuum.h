@@ -86,6 +86,12 @@ struct LegendEntry
 };
 void DrawLegend( const LegendEntry *entries, int count, const char *rightText = NULL );
 
+// mouse support for the legend bar: if the cursor sits on one of the entries
+// drawn by the last DrawLegend call, returns the engine key that entry stands
+// for (K_ENTER, K_ESCAPE, K_PGUP/K_PGDN, K_X_BUTTON, ...), else 0. Screens
+// feed the result back into their own KeyDown.
+int LegendClickKey( void );
+
 // per-game menu art lookup; returns false (and leaves pic empty) if missing
 bool GameArt( const char *folder, CImage &pic );
 bool GameBackdrop( const char *folder, CImage &pic );

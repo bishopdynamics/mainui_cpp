@@ -217,6 +217,15 @@ int DrawGlyph( EGlyph g, int x, int y, int h )
 	return w;
 }
 
+// last-drawn legend entry hitboxes, for LegendClickKey
+static struct
+{
+	int x, y, w, h;
+	EGlyph glyph;
+	bool pair;
+} g_LegendHits[8];
+static int g_nLegendHits;
+
 void DrawLegend( const LegendEntry *entries, int count, const char *rightText )
 {
 	const int barH = LEGEND_H * uiStatic.scaleY;
@@ -232,8 +241,12 @@ void DrawLegend( const LegendEntry *entries, int count, const char *rightText )
 	const int gy = y + ( barH - glyphH ) / 2;
 	const int ty = y + ( barH - textH ) / 2;
 
+	g_nLegendHits = 0;
+
 	for( int i = 0; i < count; i++ )
 	{
+		const int startX = x;
+
 		x += DrawGlyph( entries[i].glyph, x, gy, glyphH );
 		if( entries[i].glyph2 != GLYPH_COUNT )
 			x += DrawGlyph( entries[i].glyph2, x + 4 * uiStatic.scaleX, gy, glyphH ) + 4 * uiStatic.scaleX;
@@ -242,6 +255,18 @@ void DrawLegend( const LegendEntry *entries, int count, const char *rightText )
 		// UI_DrawString returns the rightmost x reached, not the width
 		x = UI_DrawString( fontHint, x, ty, ScreenWidth, textH * 1.4f,
 			entries[i].text, clrInkDim, textH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+
+		if( g_nLegendHits < (int)V_ARRAYSIZE( g_LegendHits ))
+		{
+			g_LegendHits[g_nLegendHits].x = startX - 8 * uiStatic.scaleX;
+			g_LegendHits[g_nLegendHits].y = y;
+			g_LegendHits[g_nLegendHits].w = x - startX + 16 * uiStatic.scaleX;
+			g_LegendHits[g_nLegendHits].h = barH;
+			g_LegendHits[g_nLegendHits].glyph = entries[i].glyph;
+			g_LegendHits[g_nLegendHits].pair = entries[i].glyph2 != GLYPH_COUNT;
+			g_nLegendHits++;
+		}
+
 		x += 34 * uiStatic.scaleX;
 	}
 
@@ -251,6 +276,31 @@ void DrawLegend( const LegendEntry *entries, int count, const char *rightText )
 		UI_DrawString( fontSmall, ScreenWidth - margin - wide, ty, wide + 4, textH * 1.4f,
 			rightText, clrInkFaint, textH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 	}
+}
+
+int LegendClickKey( void )
+{
+	for( int i = 0; i < g_nLegendHits; i++ )
+	{
+		if( !UI_CursorInRect( g_LegendHits[i].x, g_LegendHits[i].y, g_LegendHits[i].w, g_LegendHits[i].h ))
+			continue;
+
+		// a paired entry (LB+RB "Section") cycles forward
+		if( g_LegendHits[i].pair )
+			return K_PGDN;
+
+		switch( g_LegendHits[i].glyph )
+		{
+		case GLYPH_A:  return K_ENTER;
+		case GLYPH_B:  return K_ESCAPE;
+		case GLYPH_X:  return K_X_BUTTON;
+		case GLYPH_Y:  return K_Y_BUTTON;
+		case GLYPH_LB: return K_PGUP;
+		case GLYPH_RB: return K_PGDN;
+		default: break;
+		}
+	}
+	return 0;
 }
 
 /*
@@ -361,6 +411,12 @@ bool CContButton::KeyUp( int key )
 {
 	if( UI::Key::IsEnter( key ) || UI::Key::IsMouse( key ))
 	{
+		// the holder broadcasts mouse-ups to every visible item; only the
+		// row that actually took the press may fire (otherwise one click
+		// triggers every row's action and stacks one launch sound per row)
+		if( !m_bPressed )
+			return false;
+
 		m_bPressed = false;
 		if( !FBitSet( iFlags, QMF_GRAYED ))
 		{
