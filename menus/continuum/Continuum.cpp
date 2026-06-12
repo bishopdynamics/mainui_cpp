@@ -85,6 +85,48 @@ void DrawBackdrop( CImage &pic )
 	}
 }
 
+int DrawWrappedText( HFont font, int x, int y, int w, int lineH, const char *text, unsigned int color )
+{
+	char line[256];
+
+	while( *text )
+	{
+		// hard line breaks
+		if( *text == '\n' )
+		{
+			y += lineH * ( text[1] == '\n' ? 0.6f : 1.0f ); // blank line = paragraph gap
+			text++;
+			continue;
+		}
+
+		bool remaining = false;
+		int end = g_FontMgr->CutText( font, text, lineH, w, false, true, NULL, &remaining );
+		if( end <= 0 )
+			end = 1;
+
+		// cut before an explicit newline if one comes earlier
+		for( int i = 0; i < end; i++ )
+		{
+			if( text[i] == '\n' )
+			{
+				end = i;
+				break;
+			}
+		}
+
+		Q_strncpy( line, text, Q_min( (size_t)end + 1, sizeof( line )));
+		UI_DrawString( font, x, y, w, lineH * 1.45f, line, color, lineH, QM_LEFT | QM_TOP,
+			ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
+
+		y += lineH * 1.45f;
+		text += end;
+		while( *text == ' ' )
+			text++;
+	}
+
+	return y;
+}
+
 /*
 ====================
 glyphs
@@ -257,7 +299,8 @@ CContButton
 ====================
 */
 CContButton::CContButton() : BaseClass(),
-	szHint( NULL ), szValue( NULL ), szBadge( NULL ), bCaution( false )
+	szHint( NULL ), szValue( NULL ), szBadge( NULL ),
+	szCard( NULL ), szCardTitle( NULL ), bCaution( false )
 {
 	eTextAlignment = QM_LEFT;
 	SetSize( 400, 56 );

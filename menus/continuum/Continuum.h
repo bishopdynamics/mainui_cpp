@@ -56,6 +56,8 @@ float EaseOutCubic( float t );
 // render-space helpers
 void DrawPicAspectFit( int x, int y, int w, int h, CImage &pic, unsigned int color = 0xFFFFFFFF );
 void DrawBackdrop( CImage &pic ); // full-screen game-art backdrop (or flat bg)
+// word-wrapped multi-line text ('\n' respected); returns y below the last line
+int DrawWrappedText( HFont font, int x, int y, int w, int lineH, const char *text, unsigned int color );
 
 // controller glyphs (gfx/shell/continuum/glyphs/<style>/<glyph>.png)
 enum EGlyph
@@ -107,6 +109,8 @@ public:
 	const char *szHint;
 	const char *szValue;  // optional right-aligned value (spinner-style rows)
 	const char *szBadge;  // optional small amber badge after label ("RESTART")
+	const char *szCard;   // optional long explainer, shown in a side panel while focused
+	const char *szCardTitle;
 	bool bCaution;        // amber accent instead of orange
 
 protected:

@@ -527,7 +527,8 @@ private:
 	CContToggleRow showFps, showMapName;
 
 	// advanced
-	CContHeader hdrTex, hdrLight, hdrFx, hdrPerf;
+	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf;
+	CContToggleRow levelStreaming;
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow detailTex, overbright, dynLights, shadows, lightExt, ripple, litWater, fovAdjust;
 	CContSliderRow ambient, lodBias;
@@ -639,6 +640,21 @@ void CMenuContConfig::_Init()
 	AddRow( TAB_INTERFACE, showMapName, ROW_H );
 
 	// ---- advanced ----
+	hdrStream.SetNameAndStatus( "STREAMING", NULL );
+	AddRow( TAB_ADVANCED, hdrStream, HEADER_H );
+
+	levelStreaming.SetNameAndStatus( "Level Streaming", NULL );
+	levelStreaming.szHint = "Seamless transitions, no loading screens";
+	levelStreaming.szCardTitle = "LEVEL STREAMING";
+	levelStreaming.szCard =
+		"The whole campaign is preloaded into memory at launch (about half "
+		"a gigabyte for Half-Life) and level transitions happen invisibly - "
+		"no loading screens, sounds and music carry across.\n\n"
+		"Turn it off to get the classic loading-screen experience and "
+		"reclaim the memory on next launch. Some people like to suffer.";
+	levelStreaming.Setup( "host_level_streaming", 1 );
+	AddRow( TAB_ADVANCED, levelStreaming, ROW_H );
+
 	hdrTex.SetNameAndStatus( "TEXTURES", NULL );
 	AddRow( TAB_ADVANCED, hdrTex, HEADER_H );
 
@@ -1042,6 +1058,41 @@ void CMenuContConfig::Draw()
 	// open dropdown overlays everything, outside the scissor
 	resolution.DrawPopup();
 	windowMode.DrawPopup();
+
+	// focused rows with an explainer get a side card (when there's room
+	// right of the rows; on 4:3 there isn't)
+	CMenuBaseItem *focus = ItemAtCursor();
+	const int cardX = MARGIN + ROW_W + 24;
+	const int cardW = uiStatic.width - MARGIN - cardX;
+	if( focus && cardW >= 220 )
+	{
+		CContButton *row = static_cast<CContButton *>( focus );
+		// every focusable row on this screen derives from CContButton
+		if( row->szCard )
+		{
+			const int cx = cardX * uiStatic.scaleX;
+			const int cy = ( CONTENT_TOP + uiStatic.yOffset ) * uiStatic.scaleY;
+			const int cw = cardW * uiStatic.scaleX;
+			const int chH = 300 * uiStatic.scaleY;
+
+			UI_FillRect( cx, cy, cw, chH, 0xC0101218 );
+			UI_DrawRectangleExt( cx, cy, cw, chH, 0x28FFFFFF, 1 );
+
+			const int pad = 22 * uiStatic.scaleX;
+			const int titleHh = 12 * uiStatic.scaleY;
+			int yy = cy + 20 * uiStatic.scaleY;
+
+			if( row->szCardTitle )
+			{
+				UI_DrawString( fontSmall, cx + pad, yy, cw - pad * 2, titleHh * 1.45f,
+					row->szCardTitle, clrAccent, titleHh, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+				yy += titleHh + 16 * uiStatic.scaleY;
+			}
+
+			const int bodyH = 14 * uiStatic.scaleY;
+			DrawWrappedText( fontHint, cx + pad, yy, cw - pad * 2, bodyH, row->szCard, clrInkDim );
+		}
+	}
 
 	if( m_iTab == TAB_VIDEO && HasPendingVideo( ))
 	{
