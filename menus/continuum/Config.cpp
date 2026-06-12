@@ -986,7 +986,7 @@ void CMenuContGamepadAxes::_Init()
 	AddItem( moveForward );
 
 	osk.SetNameAndStatus( "On-Screen Keyboard", NULL );
-	osk.szHint = "Built-in keyboard for text fields, for pad-only setups";
+	osk.szHint = "Pop up for every text field - off still offers it on (A) when a pad is connected";
 	osk.Setup( "osk_enable", 0 );
 	AddItem( osk );
 }

@@ -682,12 +682,14 @@ private:
 ====================
 inline text-entry row: A starts editing, type, Enter commits to the cvar,
 Esc reverts. Char events arrive through the holder while the row has focus.
+Maintains a text cursor (left/right arrows, which the on-screen keyboard
+drives via LB/RB) and mirrors the live text into osk_preview for the OSK.
 ====================
 */
 class CContTextRow : public CContButton
 {
 public:
-	CContTextRow() : szCvar( NULL ), m_bEditing( false )
+	CContTextRow() : szCvar( NULL ), m_iCursor( 0 ), m_bEditing( false )
 	{
 		m_szBuffer[0] = 0;
 		bValueArrows = false; // text, not a spinner
@@ -703,6 +705,7 @@ public:
 	{
 		if( szCvar )
 			Q_strncpy( m_szBuffer, EngFuncs::GetCvarString( szCvar ), m_iMaxLen + 1 );
+		m_iCursor = strlen( m_szBuffer );
 		StopEditing();
 	}
 
@@ -713,7 +716,10 @@ public:
 	void StopEditing()
 	{
 		if( m_bEditing )
+		{
 			UI_EnableTextInput( false );
+			EngFuncs::CvarSetString( "osk_preview", "" );
+		}
 		m_bEditing = false;
 	}
 
@@ -755,9 +761,25 @@ public:
 			}
 			else if( key == K_BACKSPACE )
 			{
+				if( m_iCursor > 0 )
+				{
+					const int len = strlen( m_szBuffer );
+					const int prev = Con_UtfMoveLeft( m_szBuffer, m_iCursor );
+					memmove( m_szBuffer + prev, m_szBuffer + m_iCursor, len - m_iCursor + 1 );
+					m_iCursor = prev;
+					SyncPreview();
+				}
+			}
+			else if( key == K_LEFTARROW )
+			{
+				if( m_iCursor > 0 )
+					m_iCursor = Con_UtfMoveLeft( m_szBuffer, m_iCursor );
+			}
+			else if( key == K_RIGHTARROW )
+			{
 				const int len = strlen( m_szBuffer );
-				if( len > 0 )
-					m_szBuffer[Con_UtfMoveLeft( m_szBuffer, len )] = 0;
+				if( m_iCursor < len )
+					m_iCursor = Con_UtfMoveRight( m_szBuffer, m_iCursor, len );
 			}
 			else if( key == K_MOUSE1 && !UI_CursorInRect( m_scPos, m_scSize ))
 			{
@@ -770,20 +792,14 @@ public:
 		if( UI::Key::IsEnter( key ) || ( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize )))
 		{
 			m_bEditing = true;
+			m_iCursor = strlen( m_szBuffer );
 			UI_EnableTextInput( true );
+			SyncPreview();
 			PlayLocalSound( uiStatic.sounds[SND_KEY] );
 			return true;
 		}
 
 		return CContButton::KeyDown( key );
-	}
-
-	void _Event( int ev ) override
-	{
-		// losing the cursor while typing keeps whatever was entered
-		if( ev == QM_LOSTFOCUS && m_bEditing )
-			Commit();
-		CContButton::_Event( ev );
 	}
 
 	bool KeyUp( int key ) override
@@ -798,21 +814,31 @@ public:
 		if( !m_bEditing || ch < 32 )
 			return;
 
-		int len = strlen( m_szBuffer );
+		const int len = strlen( m_szBuffer );
 		if( len >= m_iMaxLen )
 			return;
 
-		m_szBuffer[len] = ch;
-		m_szBuffer[len + 1] = 0;
+		memmove( m_szBuffer + m_iCursor + 1, m_szBuffer + m_iCursor, len - m_iCursor + 1 );
+		m_szBuffer[m_iCursor++] = ch;
+		SyncPreview();
+	}
+
+	void _Event( int ev ) override
+	{
+		// losing the cursor while typing keeps whatever was entered
+		if( ev == QM_LOSTFOCUS && m_bEditing )
+			Commit();
+		CContButton::_Event( ev );
 	}
 
 	void Draw() override
 	{
 		if( m_bEditing )
 		{
-			// caret blink appended to the live buffer
-			snprintf( m_szDisplay, sizeof( m_szDisplay ), "%s%s",
-				m_szBuffer, ( uiStatic.realTime / 280 ) & 1 ? "_" : " " );
+			// blinking caret at the cursor position
+			const char caret = ( uiStatic.realTime / 280 ) & 1 ? '_' : ' ';
+			snprintf( m_szDisplay, sizeof( m_szDisplay ), "%.*s%c%s",
+				m_iCursor, m_szBuffer, caret, m_szBuffer + m_iCursor );
 			szValue = m_szDisplay;
 		}
 		else
@@ -824,9 +850,15 @@ public:
 	const char *szCvar;
 
 private:
+	void SyncPreview()
+	{
+		EngFuncs::CvarSetString( "osk_preview", m_szBuffer );
+	}
+
 	char m_szBuffer[64];
 	char m_szDisplay[68];
 	int m_iMaxLen;
+	int m_iCursor;
 	bool m_bEditing;
 };
 
