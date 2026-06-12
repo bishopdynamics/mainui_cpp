@@ -58,14 +58,11 @@ void CMenuContRoot::QuitDialogCb()
 
 void CMenuContRoot::LeaveGameCb()
 {
-	// multiplayer: nothing to lose, just leave; singleplayer: confirm first
 	if( gpGlobals->maxClients > 1 )
-	{
-		EngFuncs::ClientCmd( false, "disconnect\n" );
-		return;
-	}
+		dialog.SetMessage( "Disconnect from this server?" );
+	else
+		dialog.SetMessage( "Leave the current game? Progress since your last save will be lost." );
 
-	dialog.SetMessage( "Leave the current game? Progress since your last save will be lost." );
 	dialog.onPositive.SetCommand( false, "disconnect\n" );
 	dialog.Show();
 }

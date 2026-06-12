@@ -124,10 +124,10 @@ void CMenuContGamePage::_Init()
 	newGame.onReleased = VoidCb( &CMenuContGamePage::NewGameCb );
 
 	loadGame.SetNameAndStatus( "Load Game", NULL );
-	loadGame.onReleased = UI_LoadGame_Menu;
+	loadGame.onReleased = UI_ContLoadGame_Menu;
 
 	saveGame.SetNameAndStatus( "Save Game", NULL );
-	saveGame.onReleased = UI_SaveGame_Menu;
+	saveGame.onReleased = UI_ContSaveGame_Menu;
 
 	multiplayer.SetNameAndStatus( "Multiplayer", NULL );
 	multiplayer.onReleased = UI_ContMultiplayer_Menu;

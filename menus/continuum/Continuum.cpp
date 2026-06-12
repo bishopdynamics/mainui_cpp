@@ -220,7 +220,8 @@ int DrawGlyph( EGlyph g, int x, int y, int h )
 	if( !w )
 		return 0;
 
-	UI_DrawPic( x, y, w, h, 0xFFFFFFFF, g_GlyphPics[g] );
+	// trans mode: the PNG alpha matters when rows highlight behind the glyph
+	UI_DrawPic( x, y, w, h, 0xFFFFFFFF, g_GlyphPics[g], QM_DRAWTRANS );
 	return w;
 }
 
