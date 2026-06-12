@@ -14,6 +14,7 @@ GNU General Public License for more details.
 */
 #include "Continuum.h"
 #include "FontManager.h"
+#include "YesNoMessageBox.h"
 #include "keydefs.h"
 
 using namespace Cont;
@@ -187,35 +188,141 @@ public:
 	int iDefault;
 };
 
-// resolution spin: dynamic labels from the engine mode list, applies through
-// the vid_setmode command
-class CContResolutionRow : public CContSpinRow
+// dropdown row: A opens an overlay list, left/right nudges without opening.
+// Changes are PENDING until the screen applies them (video settings get the
+// apply + 15 s confirm/revert treatment).
+class CContDropdownRow : public CContButton
 {
 public:
-	enum { MAX_MODES = 64 };
+	enum { MAX_OPTIONS = 64 };
 
-	void Refresh()
+	CContDropdownRow() : nCount( 0 ), iApplied( 0 ), iPending( 0 ),
+		bOpen( false ), iHover( 0 ) { }
+
+	void SetOptions( const char **labels, int count )
 	{
-		nCount = 0;
-		for( int i = 0; i < MAX_MODES; i++ )
-		{
-			const char *mode = EngFuncs::GetModeString( i );
-			if( !mode ) break;
-			m_szModes[nCount++] = mode;
-		}
-		szLabels = m_szModes;
-		iIndex = bound( 0, (int)EngFuncs::GetCvarFloat( "vid_mode" ), nCount - 1 );
-		iDefault = iIndex;
-		if( nCount )
-			szValue = szLabels[iIndex];
+		nCount = Q_min( count, (int)MAX_OPTIONS );
+		for( int i = 0; i < nCount; i++ )
+			m_szOptions[i] = labels[i];
+		Sync();
 	}
 
-	void Reload() override { Refresh(); }
-	void Write() override { EngFuncs::ClientCmdF( true, "vid_setmode %i\n", iIndex ); }
-	void ResetDefault() override { } // no meaningful "default" resolution
+	void SetApplied( int idx )
+	{
+		iApplied = iPending = bound( 0, idx, nCount - 1 );
+		Sync();
+	}
+
+	bool HasPending() const { return iPending != iApplied; }
+	void AcceptPending() { iApplied = iPending; Sync(); }
+	void RevertPending() { iPending = iApplied; Sync(); }
+
+	bool KeyDown( int key ) override
+	{
+		if( bOpen )
+		{
+			if( UI::Key::IsUpArrow( key ))
+				iHover = ( iHover + nCount - 1 ) % nCount;
+			else if( UI::Key::IsDownArrow( key ))
+				iHover = ( iHover + 1 ) % nCount;
+			else if( UI::Key::IsEnter( key ))
+			{
+				iPending = iHover;
+				bOpen = false;
+				Sync();
+			}
+			else if( UI::Key::IsEscape( key ))
+				bOpen = false;
+
+			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
+			return true; // swallow everything while open
+		}
+
+		if( UI::Key::IsEnter( key ) || ( UI::Key::IsMouse( key ) && UI_CursorInRect( m_scPos, m_scSize )))
+		{
+			bOpen = true;
+			iHover = iPending;
+			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
+			return true;
+		}
+
+		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ))
+		{
+			const int next = iPending + ( UI::Key::IsRightArrow( key ) ? 1 : -1 );
+			if( next >= 0 && next < nCount )
+			{
+				iPending = next;
+				Sync();
+				PlayLocalSound( uiStatic.sounds[SND_MOVE] );
+			}
+			return true;
+		}
+
+		return false;
+	}
+
+	void Draw() override
+	{
+		Sync();
+		CContButton::Draw();
+
+		// pending marker
+		if( HasPending( ))
+		{
+			const int h = 16 * uiStatic.scaleY;
+			UI_DrawString( fontBody, m_scPos.x + m_scSize.w - 22 * uiStatic.scaleX, m_scPos.y + ( m_scSize.h - h ) / 2,
+				20 * uiStatic.scaleX, h * 1.45f, "*", clrAccent, h, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+		}
+	}
+
+	// the screen calls this after everything else so the list overlays rows
+	void DrawPopup()
+	{
+		if( !bOpen || !nCount )
+			return;
+
+		const int itemH = 30 * uiStatic.scaleY;
+		const int visible = Q_min( nCount, 9 );
+		const int w = 260 * uiStatic.scaleX;
+		const int x = m_scPos.x + m_scSize.w - w;
+		int y = m_scPos.y + m_scSize.h;
+
+		// keep the hovered option in the window
+		int first = bound( 0, iHover - visible / 2, Q_max( 0, nCount - visible ));
+
+		// clamp to screen bottom
+		if( y + visible * itemH > ScreenHeight )
+			y = m_scPos.y - visible * itemH;
+
+		UI_FillRect( x - 2, y - 2, w + 4, visible * itemH + 4, 0xF20E1014 );
+		UI_DrawRectangleExt( x - 2, y - 2, w + 4, visible * itemH + 4, 0x46FFFFFF, 1 );
+
+		const int textH = 15 * uiStatic.scaleY;
+		for( int i = 0; i < visible; i++ )
+		{
+			const int idx = first + i;
+			const int ry = y + i * itemH;
+
+			if( idx == iHover )
+				UI_FillRect( x, ry, w, itemH, clrAccentSoft );
+			if( idx == iHover )
+				UI_FillRect( x, ry, 3 * uiStatic.scaleX, itemH, clrAccent );
+
+			unsigned int color = idx == iApplied ? clrAccent : ( idx == iHover ? clrInk : clrInkDim );
+			UI_DrawString( fontBody, x + 14 * uiStatic.scaleX, ry + ( itemH - textH ) / 2, w - 20 * uiStatic.scaleX,
+				textH * 1.45f, m_szOptions[idx], color, textH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
+		}
+	}
+
+	bool bOpen;
+	int nCount;
+	int iApplied;
+	int iPending;
+	int iHover;
 
 private:
-	const char *m_szModes[MAX_MODES];
+	void Sync() { szValue = nCount ? m_szOptions[bound( 0, iPending, nCount - 1 )] : ""; }
+	const char *m_szOptions[MAX_OPTIONS];
 };
 
 class CContSliderRow : public CContButton
@@ -386,12 +493,24 @@ private:
 	float m_flScroll, m_flScrollTarget;
 
 	// video
-	CContResolutionRow resolution;
-	CContSpinRow windowMode;
+	CContDropdownRow resolution;
+	CContDropdownRow windowMode;
 	CContSliderRow fov;
 	CContToggleRow vsync;
 	CContSliderRow gamma;
 	CContSliderRow brightness;
+
+	// pending-video apply/confirm state
+	void ReloadVideoRows();
+	bool HasPendingVideo() const;
+	void ApplyVideo();
+	void RevertVideo();
+	void KeepVideo();
+	CMenuYesNoMessageBox confirmDialog;
+	char szConfirmMsg[96];
+	float flConfirmDeadline = 0;
+	bool bAwaitConfirm = false;
+	int iRevertMode = 0, iRevertFS = 0;
 
 	// audio
 	CContSliderRow volMaster, volMusic, volSuit;
@@ -437,12 +556,18 @@ void CMenuContConfig::_Init()
 
 	// ---- video ----
 	resolution.SetNameAndStatus( "Resolution", NULL );
-	resolution.szHint = "Applied immediately";
+	resolution.szHint = "Press X to apply";
 
 	static const char *wmLabels[] = { "Windowed", "Fullscreen", "Borderless" };
-	static const float wmValues[] = { 0, 1, 2 };
 	windowMode.SetNameAndStatus( "Display Mode", NULL );
-	windowMode.Setup( "fullscreen", wmLabels, wmValues, 3, 2 );
+	windowMode.szHint = "Press X to apply";
+	windowMode.SetOptions( wmLabels, 3 );
+
+	confirmDialog.SetPositiveButton( "Keep", PC_OK );
+	confirmDialog.SetNegativeButton( "Revert", PC_CANCEL );
+	confirmDialog.onPositive = VoidCb( &CMenuContConfig::KeepVideo );
+	confirmDialog.onNegative = VoidCb( &CMenuContConfig::RevertVideo );
+	confirmDialog.Link( this );
 
 	fov.SetNameAndStatus( "Field of View", NULL );
 	fov.Setup( "default_fov", 70, 120, 5, 90, 0 );
@@ -631,7 +756,92 @@ void CMenuContConfig::_Init()
 void CMenuContConfig::_VidInit()
 {
 	VidInitFonts();
+	ReloadVideoRows();
 	ApplyLayout();
+}
+
+/*
+====================
+pending video changes: nothing applies until X, then the user has 15 s to
+confirm before everything reverts (a bad mode shouldn't strand them)
+====================
+*/
+void CMenuContConfig::ReloadVideoRows()
+{
+	const char *modes[CContDropdownRow::MAX_OPTIONS];
+	int count = 0;
+
+	for( int i = 0; i < (int)CContDropdownRow::MAX_OPTIONS; i++ )
+	{
+		const char *mode = EngFuncs::GetModeString( i );
+		if( !mode ) break;
+		modes[count++] = mode;
+	}
+
+	resolution.SetOptions( modes, count );
+
+	// vid_mode can be stale; trust the actual window size when it's in the list
+	char current[32];
+	snprintf( current, sizeof( current ), "%ix%i",
+		(int)EngFuncs::GetCvarFloat( "width" ), (int)EngFuncs::GetCvarFloat( "height" ));
+
+	int applied = (int)EngFuncs::GetCvarFloat( "vid_mode" );
+	for( int i = 0; i < count; i++ )
+	{
+		if( !stricmp( modes[i], current ))
+		{
+			applied = i;
+			break;
+		}
+	}
+
+	resolution.SetApplied( applied );
+	windowMode.SetApplied( bound( 0, (int)EngFuncs::GetCvarFloat( "fullscreen" ), 2 ));
+}
+
+bool CMenuContConfig::HasPendingVideo() const
+{
+	return resolution.HasPending() || windowMode.HasPending();
+}
+
+void CMenuContConfig::ApplyVideo()
+{
+	iRevertMode = resolution.iApplied;
+	iRevertFS = windowMode.iApplied;
+
+	if( windowMode.HasPending( ))
+		EngFuncs::CvarSetValue( "fullscreen", windowMode.iPending );
+	if( resolution.HasPending( ))
+		EngFuncs::ClientCmdF( true, "vid_setmode %i\n", resolution.iPending );
+
+	resolution.AcceptPending();
+	windowMode.AcceptPending();
+
+	bAwaitConfirm = true;
+	flConfirmDeadline = gpGlobals->time + 15.0f;
+
+	Q_strncpy( szConfirmMsg, "Keep these video settings?", sizeof( szConfirmMsg ));
+	confirmDialog.SetMessage( szConfirmMsg );
+	confirmDialog.Show();
+}
+
+void CMenuContConfig::KeepVideo()
+{
+	bAwaitConfirm = false;
+}
+
+void CMenuContConfig::RevertVideo()
+{
+	if( !bAwaitConfirm )
+		return;
+
+	bAwaitConfirm = false;
+
+	EngFuncs::CvarSetValue( "fullscreen", iRevertFS );
+	EngFuncs::ClientCmdF( true, "vid_setmode %i\n", iRevertMode );
+
+	resolution.SetApplied( iRevertMode );
+	windowMode.SetApplied( iRevertFS );
 }
 
 void CMenuContConfig::SetTab( int tab )
@@ -678,6 +888,24 @@ void CMenuContConfig::ApplyLayout()
 
 void CMenuContConfig::Think()
 {
+	// applied-but-unconfirmed video settings revert when the clock runs out
+	if( bAwaitConfirm )
+	{
+		const int left = (int)( flConfirmDeadline - gpGlobals->time );
+
+		if( left < 0 )
+		{
+			confirmDialog.Hide();
+			RevertVideo();
+		}
+		else
+		{
+			snprintf( szConfirmMsg, sizeof( szConfirmMsg ),
+				"Keep these video settings? Reverting in %i s", left + 1 );
+			confirmDialog.SetMessage( szConfirmMsg );
+		}
+	}
+
 	// keep the focused row in view
 	CMenuBaseItem *focus = ItemAtCursor();
 	if( focus )
@@ -747,7 +975,12 @@ bool CMenuContConfig::KeyDown( int key )
 
 	if( key == K_X_BUTTON )
 	{
-		ResetTabDefaults();
+		// on the video tab X applies pending resolution/display changes;
+		// everywhere else (or with nothing pending) it restores defaults
+		if( m_iTab == TAB_VIDEO && HasPendingVideo( ))
+			ApplyVideo();
+		else
+			ResetTabDefaults();
 		return true;
 	}
 
@@ -806,14 +1039,32 @@ void CMenuContConfig::Draw()
 	CMenuFramework::Draw();
 	EngFuncs::PIC_DisableScissor();
 
-	static const LegendEntry legend[] =
+	// open dropdown overlays everything, outside the scissor
+	resolution.DrawPopup();
+	windowMode.DrawPopup();
+
+	if( m_iTab == TAB_VIDEO && HasPendingVideo( ))
 	{
-		{ GLYPH_A, GLYPH_COUNT, "Change" },
-		{ GLYPH_B, GLYPH_COUNT, "Back" },
-		{ GLYPH_LB, GLYPH_RB, "Section" },
-		{ GLYPH_X, GLYPH_COUNT, "Restore Defaults" },
-	};
-	DrawLegend( legend, V_ARRAYSIZE( legend ), "APPLIES TO ALL GAMES" );
+		static const LegendEntry legend[] =
+		{
+			{ GLYPH_A, GLYPH_COUNT, "Change" },
+			{ GLYPH_B, GLYPH_COUNT, "Back" },
+			{ GLYPH_LB, GLYPH_RB, "Section" },
+			{ GLYPH_X, GLYPH_COUNT, "Apply" },
+		};
+		DrawLegend( legend, V_ARRAYSIZE( legend ), "APPLIES TO ALL GAMES" );
+	}
+	else
+	{
+		static const LegendEntry legend[] =
+		{
+			{ GLYPH_A, GLYPH_COUNT, "Change" },
+			{ GLYPH_B, GLYPH_COUNT, "Back" },
+			{ GLYPH_LB, GLYPH_RB, "Section" },
+			{ GLYPH_X, GLYPH_COUNT, "Restore Defaults" },
+		};
+		DrawLegend( legend, V_ARRAYSIZE( legend ), "APPLIES TO ALL GAMES" );
+	}
 }
 
 ADD_MENU( menu_continuum_config, CMenuContConfig, UI_ContConfig_Menu );
