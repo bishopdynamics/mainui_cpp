@@ -407,4 +407,6 @@ void CMenuMain::Think()
 	CMenuFramework::Think();
 }
 
-ADD_MENU( menu_main, CMenuMain, UI_Main_Menu );
+// Continuum: the classic main menu stays reachable for debugging, but
+// UI_Main_Menu is now provided by menus/continuum/RootMenu.cpp
+ADD_MENU( menu_main_classic, CMenuMain, UI_MainClassic_Menu );

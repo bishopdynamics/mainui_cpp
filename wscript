@@ -59,6 +59,7 @@ def build(bld):
 		'font/*.cpp',
 		'menus/*.cpp',
 		'menus/dynamic/*.cpp',
+		'menus/continuum/*.cpp',
 		'model/*.cpp',
 		'controls/*.cpp'
 	])

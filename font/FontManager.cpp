@@ -534,7 +534,12 @@ HFont CFontBuilder::Create()
 
 bool CFontManager::FindFontDataFile( const char *name, int tall, int weight, int flags, char *dataFile, size_t dataFileChars )
 {
-	if( !strcmp( name, "Trebuchet MS" ))
+	if( !strcmp( name, "Michroma" ))
+	{
+		Q_strncpy( dataFile, "gfx/fonts/Michroma.ttf", dataFileChars );
+		return true;
+	}
+	else if( !strcmp( name, "Trebuchet MS" ))
 	{
 		Q_strncpy( dataFile, "gfx/fonts/FiraSans-Regular.ttf", dataFileChars );
 		return true;
