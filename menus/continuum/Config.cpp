@@ -27,533 +27,9 @@ using namespace Cont;
 
 /*
 ====================
-row widgets
+screen-specific row widgets (the shared ones live in Continuum.h)
 ====================
 */
-
-// section header, skipped by the cursor
-class CContHeader : public CContButton
-{
-public:
-	CContHeader() { iFlags |= QMF_INACTIVE; }
-
-	void Draw() override
-	{
-		if( RowClipped( m_scPos.y, m_scSize.h ))
-			return;
-
-		const int h = 12 * uiStatic.scaleY;
-		UI_DrawString( fontSmall, m_scPos.x + 6 * uiStatic.scaleX, m_scPos.y + m_scSize.h - h * 1.6f,
-			m_scSize.w, h * 1.45f, szName, clrAccent, h, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
-	}
-};
-
-class CContToggleRow : public CContButton
-{
-public:
-	void Setup( const char *cv, float def )
-	{
-		szCvar = cv;
-		flDefault = def;
-	}
-
-	void Reload() override { bOn = EngFuncs::GetCvarFloat( szCvar ) != 0.0f; }
-	void ResetDefault() override { EngFuncs::CvarSetValue( szCvar, flDefault ); Reload(); }
-
-	bool KeyDown( int key ) override
-	{
-		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) || UI::Key::IsEnter( key )
-			|| ( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize )))
-		{
-			bOn = !bOn;
-			EngFuncs::CvarSetValue( szCvar, bOn ? 1.0f : 0.0f );
-			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
-			_Event( QM_CHANGED );
-			return true;
-		}
-		return CContButton::KeyDown( key );
-	}
-
-	void Draw() override
-	{
-		if( RowClipped( m_scPos.y, m_scSize.h ))
-			return;
-
-		CContButton::Draw();
-
-		// toggle pill, right-aligned
-		const int ph = 20 * uiStatic.scaleY;
-		const int pw = 40 * uiStatic.scaleX;
-		const int px = m_scPos.x + m_scSize.w - pw - 30 * uiStatic.scaleX;
-		const int py = m_scPos.y + ( m_scSize.h - ph ) / 2;
-		const int dot = ph - 6 * uiStatic.scaleY;
-		const bool grayed = FBitSet( iFlags, QMF_GRAYED );
-
-		UI_DrawPic( px, py, pw, ph, bOn && !grayed ? ( bCaution ? clrCaution : clrAccent ) : 0x50FFFFFF,
-			PillPic(), QM_DRAWTRANS );
-		const int dx = bOn ? px + pw - dot - 3 * uiStatic.scaleX : px + 3 * uiStatic.scaleX;
-		UI_DrawPic( dx, py + 3 * uiStatic.scaleY, dot, dot, grayed ? clrInkDim : 0xFFFFFFFF,
-			DotPic(), QM_DRAWTRANS );
-	}
-
-	const char *szCvar;
-	float flDefault;
-	bool bOn;
-};
-
-class CContSpinRow : public CContButton
-{
-public:
-	CContSpinRow() : nCount( 0 ), iIndex( 0 ), szCvar( NULL ), szLabels( NULL ),
-		flValues( NULL ), szValues( NULL ), iDefault( 0 ) { }
-
-	void Setup( const char *cv, const char **labels, const float *fvals, int count, int defIdx )
-	{
-		szCvar = cv;
-		szLabels = labels;
-		flValues = fvals;
-		szValues = NULL;
-		nCount = count;
-		iDefault = defIdx;
-	}
-
-	void SetupString( const char *cv, const char **labels, const char **svals, int count, int defIdx )
-	{
-		szCvar = cv;
-		szLabels = labels;
-		szValues = svals;
-		flValues = NULL;
-		nCount = count;
-		iDefault = defIdx;
-	}
-
-	void Reload() override
-	{
-		if( !szCvar ) return;
-
-		iIndex = iDefault;
-		if( szValues )
-		{
-			const char *v = EngFuncs::GetCvarString( szCvar );
-			for( int i = 0; i < nCount; i++ )
-				if( !stricmp( v, szValues[i] )) { iIndex = i; break; }
-		}
-		else
-		{
-			const float v = EngFuncs::GetCvarFloat( szCvar );
-			float best = 1e9f;
-			for( int i = 0; i < nCount; i++ )
-			{
-				const float d = fabs( v - flValues[i] );
-				if( d < best ) { best = d; iIndex = i; }
-			}
-		}
-		szValue = szLabels[iIndex];
-	}
-
-	virtual void Write()
-	{
-		if( !szCvar ) return;
-		if( szValues )
-			EngFuncs::CvarSetString( szCvar, szValues[iIndex] );
-		else
-			EngFuncs::CvarSetValue( szCvar, flValues[iIndex] );
-	}
-
-	void ResetDefault() override
-	{
-		iIndex = iDefault;
-		szValue = szLabels[iIndex];
-		Write();
-	}
-
-	bool KeyDown( int key ) override
-	{
-		int dir = 0;
-
-		if( UI::Key::IsLeftArrow( key ))
-			dir = -1;
-		else if( UI::Key::IsRightArrow( key ))
-			dir = 1;
-		else if( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize ))
-			dir = uiStatic.cursorX > m_scPos.x + m_scSize.w * 0.78f ? 1 : -1;
-
-		if( dir )
-		{
-			const int next = iIndex + dir;
-			if( next >= 0 && next < nCount )
-			{
-				iIndex = next;
-				szValue = szLabels[iIndex];
-				Write();
-				PlayLocalSound( uiStatic.sounds[SND_MOVE] );
-				_Event( QM_CHANGED );
-			}
-			return true;
-		}
-		return CContButton::KeyDown( key );
-	}
-
-	const char *szCvar;
-	const char **szLabels;
-	const float *flValues;
-	const char **szValues;
-	int nCount;
-	int iIndex;
-	int iDefault;
-};
-
-// dropdown row: A opens an overlay list, left/right nudges without opening.
-// Changes are PENDING until the screen applies them (video settings get the
-// apply + 15 s confirm/revert treatment).
-class CContDropdownRow : public CContButton
-{
-public:
-	enum { MAX_OPTIONS = 64 };
-
-	CContDropdownRow() : nCount( 0 ), iApplied( 0 ), iPending( 0 ),
-		bOpen( false ), iHover( 0 ) { }
-
-	void SetOptions( const char **labels, int count )
-	{
-		nCount = Q_min( count, (int)MAX_OPTIONS );
-		for( int i = 0; i < nCount; i++ )
-			m_szOptions[i] = labels[i];
-		Sync();
-	}
-
-	void SetApplied( int idx )
-	{
-		iApplied = iPending = bound( 0, idx, nCount - 1 );
-		Sync();
-	}
-
-	bool HasPending() const { return iPending != iApplied; }
-	void AcceptPending() { iApplied = iPending; Sync(); }
-	void RevertPending() { iPending = iApplied; Sync(); }
-
-	bool KeyDown( int key ) override
-	{
-		if( bOpen )
-		{
-			if( UI::Key::IsUpArrow( key ))
-				iHover = ( iHover + nCount - 1 ) % nCount;
-			else if( UI::Key::IsDownArrow( key ))
-				iHover = ( iHover + 1 ) % nCount;
-			else if( UI::Key::IsEnter( key ))
-			{
-				iPending = iHover;
-				bOpen = false;
-				Sync();
-			}
-			else if( UI::Key::IsEscape( key ))
-				bOpen = false;
-			else if( key == K_MOUSE1 )
-			{
-				if( UI_CursorInRect( m_iPopX, m_iPopY, m_iPopW, m_iPopVisible * m_iPopItemH ))
-				{
-					const int idx = m_iPopFirst + ( uiStatic.cursorY - m_iPopY ) / m_iPopItemH;
-					if( idx >= 0 && idx < nCount )
-					{
-						iPending = idx;
-						Sync();
-					}
-				}
-				bOpen = false; // click inside selects, click outside dismisses
-			}
-
-			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
-			return true; // swallow everything while open
-		}
-
-		if( UI::Key::IsEnter( key ) || ( UI::Key::IsMouse( key ) && UI_CursorInRect( m_scPos, m_scSize )))
-		{
-			bOpen = true;
-			iHover = iPending;
-			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
-			return true;
-		}
-
-		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ))
-		{
-			const int next = iPending + ( UI::Key::IsRightArrow( key ) ? 1 : -1 );
-			if( next >= 0 && next < nCount )
-			{
-				iPending = next;
-				Sync();
-				PlayLocalSound( uiStatic.sounds[SND_MOVE] );
-			}
-			return true;
-		}
-
-		return false;
-	}
-
-	void Draw() override
-	{
-		Sync();
-		CContButton::Draw();
-
-		// pending marker
-		if( HasPending( ))
-		{
-			const int h = 16 * uiStatic.scaleY;
-			UI_DrawString( fontBody, m_scPos.x + m_scSize.w - 22 * uiStatic.scaleX, m_scPos.y + ( m_scSize.h - h ) / 2,
-				20 * uiStatic.scaleX, h * 1.45f, "*", clrAccent, h, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
-		}
-	}
-
-	// the screen calls this after everything else so the list overlays rows
-	void DrawPopup()
-	{
-		if( !bOpen || !nCount )
-			return;
-
-		const int itemH = 30 * uiStatic.scaleY;
-		const int visible = Q_min( nCount, 9 );
-		const int w = 260 * uiStatic.scaleX;
-		const int x = m_scPos.x + m_scSize.w - w;
-		int y = m_scPos.y + m_scSize.h;
-
-		// keep the hovered option in the window
-		int first = bound( 0, iHover - visible / 2, Q_max( 0, nCount - visible ));
-
-		// clamp to screen bottom
-		if( y + visible * itemH > ScreenHeight )
-			y = m_scPos.y - visible * itemH;
-
-		m_iPopX = x;
-		m_iPopY = y;
-		m_iPopW = w;
-		m_iPopItemH = itemH;
-		m_iPopFirst = first;
-		m_iPopVisible = visible;
-
-		UI_FillRect( x - 2, y - 2, w + 4, visible * itemH + 4, 0xF20E1014 );
-		UI_DrawRectangleExt( x - 2, y - 2, w + 4, visible * itemH + 4, 0x46FFFFFF, 1 );
-
-		const int textH = 15 * uiStatic.scaleY;
-		for( int i = 0; i < visible; i++ )
-		{
-			const int idx = first + i;
-			const int ry = y + i * itemH;
-
-			if( idx == iHover )
-				UI_FillRect( x, ry, w, itemH, clrAccentSoft );
-			if( idx == iHover )
-				UI_FillRect( x, ry, 3 * uiStatic.scaleX, itemH, clrAccent );
-
-			unsigned int color = idx == iApplied ? clrAccent : ( idx == iHover ? clrInk : clrInkDim );
-			UI_DrawString( fontBody, x + 14 * uiStatic.scaleX, ry + ( itemH - textH ) / 2, w - 20 * uiStatic.scaleX,
-				textH * 1.45f, m_szOptions[idx], color, textH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
-		}
-	}
-
-	bool bOpen;
-	int nCount;
-	int iApplied;
-	int iPending;
-	int iHover;
-
-private:
-	void Sync() { szValue = nCount ? m_szOptions[bound( 0, iPending, nCount - 1 )] : ""; }
-	const char *m_szOptions[MAX_OPTIONS];
-	int m_iPopX, m_iPopY, m_iPopW, m_iPopItemH, m_iPopFirst, m_iPopVisible;
-};
-
-class CContSliderRow : public CContButton
-{
-public:
-	void Setup( const char *cv, float min, float max, float step, float def, int decimals = 1 )
-	{
-		szCvar = cv;
-		flMin = min;
-		flMax = max;
-		flStep = step;
-		flDefault = def;
-		nDecimals = decimals;
-	}
-
-	// track geometry in render space, shared by Draw and mouse handling
-	void TrackRect( int &tx, int &ty, int &tw, int &th )
-	{
-		tw = 170 * uiStatic.scaleX;
-		tx = m_scPos.x + m_scSize.w - tw - 44 * uiStatic.scaleX - 30 * uiStatic.scaleX;
-		th = 4 * uiStatic.scaleY;
-		ty = m_scPos.y + m_scSize.h / 2 - th / 2;
-	}
-
-	virtual void SetValue( float v )
-	{
-		// snap to step
-		v = flMin + (int)(( v - flMin ) / flStep + 0.5f ) * flStep;
-		flValue = bound( flMin, v, flMax );
-		EngFuncs::CvarSetValue( szCvar, flValue );
-		_Event( QM_CHANGED );
-	}
-
-	void SetFromCursor()
-	{
-		int tx, ty, tw, th;
-		TrackRect( tx, ty, tw, th );
-		const float frac = bound( 0.0f, ( uiStatic.cursorX - tx ) / (float)tw, 1.0f );
-		SetValue( flMin + frac * ( flMax - flMin ));
-	}
-
-	void Think() override
-	{
-		// drag: while pressed with the button held, follow the cursor
-		if( m_bPressed && g_bCursorDown )
-			SetFromCursor();
-		CContButton::Think();
-	}
-
-	void Reload() override
-	{
-		flValue = bound( flMin, EngFuncs::GetCvarFloat( szCvar ), flMax );
-	}
-
-	void ResetDefault() override { EngFuncs::CvarSetValue( szCvar, flDefault ); Reload(); }
-
-	bool KeyDown( int key ) override
-	{
-		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ))
-		{
-			const float dir = UI::Key::IsRightArrow( key ) ? 1.0f : -1.0f;
-			flValue = bound( flMin, flValue + dir * flStep, flMax );
-			EngFuncs::CvarSetValue( szCvar, flValue );
-			_Event( QM_CHANGED );
-			return true;
-		}
-
-		if( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize ))
-		{
-			m_bPressed = true;
-			SetFromCursor();
-			return true;
-		}
-
-		return CContButton::KeyDown( key );
-	}
-
-	void Draw() override
-	{
-		if( RowClipped( m_scPos.y, m_scSize.h ))
-			return;
-
-		CContButton::Draw();
-
-		const int numH = 13 * uiStatic.scaleY;
-		char num[16];
-		snprintf( num, sizeof( num ), "%.*f", nDecimals, flValue );
-
-		int tx, ty, tw, th;
-		TrackRect( tx, ty, tw, th );
-		const int cy = m_scPos.y + m_scSize.h / 2;
-		const float frac = ( flValue - flMin ) / ( flMax - flMin );
-
-		UI_FillRect( tx, ty, tw, th, 0x3CFFFFFF );
-		UI_FillRect( tx, ty, tw * frac, th, bCaution ? clrCaution : clrAccent );
-
-		const int knob = 13 * uiStatic.scaleY;
-		UI_DrawPic( tx + tw * frac - knob / 2, cy - knob / 2, knob, knob, clrInk, DotPic(), QM_DRAWTRANS );
-
-		UI_DrawString( fontHint, tx + tw + 12 * uiStatic.scaleX, cy - numH / 2 - 2, 44 * uiStatic.scaleX, numH * 1.45f,
-			num, clrInkDim, numH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
-	}
-
-	const char *szCvar;
-	float flMin, flMax, flStep, flDefault, flValue;
-	int nDecimals;
-};
-
-// invert-look toggle: UI face over the sign of a pitch cvar (m_pitch for
-// the mouse, joy_pitch for the right stick)
-class CContInvertRow : public CContToggleRow
-{
-public:
-	void SetupSign( const char *cv ) { szCvar = cv; }
-
-	void Reload() override { bOn = EngFuncs::GetCvarFloat( szCvar ) < 0.0f; }
-	void ResetDefault() override
-	{
-		EngFuncs::CvarSetValue( szCvar, fabs( EngFuncs::GetCvarFloat( szCvar )));
-		Reload();
-	}
-
-	bool KeyDown( int key ) override
-	{
-		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) || UI::Key::IsEnter( key ))
-		{
-			const float pitch = EngFuncs::GetCvarFloat( szCvar );
-			EngFuncs::CvarSetValue( szCvar, -pitch );
-			bOn = -pitch < 0.0f;
-			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
-			return true;
-		}
-		return CContButton::KeyDown( key );
-	}
-};
-
-// slider that drives several cvars at once with one magnitude, preserving
-// each cvar's sign (joy look sensitivity, stick deadzones)
-class CContMultiSliderRow : public CContSliderRow
-{
-public:
-	enum { MAX_CVARS = 4 };
-
-	void SetupMulti( const char **cvars, int count, float min, float max, float step, float def, int decimals = 0 )
-	{
-		nCvars = Q_min( count, (int)MAX_CVARS );
-		for( int i = 0; i < nCvars; i++ )
-			szCvars[i] = cvars[i];
-		Setup( cvars[0], min, max, step, def, decimals );
-	}
-
-	void Reload() override
-	{
-		flValue = bound( flMin, fabs( EngFuncs::GetCvarFloat( szCvars[0] )), flMax );
-	}
-
-	void ResetDefault() override
-	{
-		flValue = flDefault;
-		WriteAll();
-	}
-
-	void SetValue( float v ) override
-	{
-		v = flMin + (int)(( v - flMin ) / flStep + 0.5f ) * flStep;
-		flValue = bound( flMin, v, flMax );
-		WriteAll();
-		_Event( QM_CHANGED );
-	}
-
-	bool KeyDown( int key ) override
-	{
-		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ))
-		{
-			const float dir = UI::Key::IsRightArrow( key ) ? 1.0f : -1.0f;
-			flValue = bound( flMin, flValue + dir * flStep, flMax );
-			WriteAll();
-			return true;
-		}
-		return CContSliderRow::KeyDown( key );
-	}
-
-private:
-	void WriteAll()
-	{
-		for( int i = 0; i < nCvars; i++ )
-		{
-			const float sign = EngFuncs::GetCvarFloat( szCvars[i] ) < 0.0f ? -1.0f : 1.0f;
-			EngFuncs::CvarSetValue( szCvars[i], flValue * sign );
-		}
-	}
-
-	const char *szCvars[MAX_CVARS];
-	int nCvars;
-};
 
 // MSAA also flips the gl_msaa master switch
 class CContMsaaRow : public CContSpinRow
@@ -669,7 +145,7 @@ private:
 	CContHeader hdrMouse, hdrKeys, hdrPad, hdrGyro;
 	CContSliderRow sensitivity;
 	CContInvertRow invertLook;
-	CContToggleRow rawInput;
+	CContToggleRow rawInput, mouseFilter, autoAim;
 	CContButton keyBindings;
 	CContToggleRow padEnable;
 	CContMultiSliderRow padLook;
@@ -683,7 +159,7 @@ private:
 	// interface
 	CContSpinRow glyphStyle;
 	CContGlyphPreviewRow glyphPreview;
-	CContToggleRow showFps, showMapName;
+	CContToggleRow showFps, showMapName, crosshairToggle;
 
 	// advanced
 	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf;
@@ -778,12 +254,22 @@ void CMenuContConfig::_Init()
 	rawInput.Setup( "m_rawinput", 1 );
 	AddRow( TAB_CONTROLS, rawInput, ROW_H );
 
+	mouseFilter.SetNameAndStatus( "Mouse Smoothing", NULL );
+	mouseFilter.szHint = "Averages mouse movement across frames";
+	mouseFilter.Setup( "m_filter", 0 );
+	AddRow( TAB_CONTROLS, mouseFilter, ROW_H );
+
+	autoAim.SetNameAndStatus( "Auto-Aim", NULL );
+	autoAim.szHint = "The original console-style aim assist";
+	autoAim.Setup( "sv_aim", 0 );
+	AddRow( TAB_CONTROLS, autoAim, ROW_H );
+
 	hdrKeys.SetNameAndStatus( "KEYBOARD", NULL );
 	AddRow( TAB_CONTROLS, hdrKeys, HEADER_H );
 
 	keyBindings.SetNameAndStatus( "Keyboard & Mouse Bindings", NULL );
 	keyBindings.szHint = "Rebind every action";
-	keyBindings.onReleased = UI_Controls_Menu;
+	keyBindings.onReleased = UI_ContBindings_Menu;
 	AddRow( TAB_CONTROLS, keyBindings, ROW_H );
 
 	hdrPad.SetNameAndStatus( "GAMEPAD", NULL );
@@ -811,8 +297,8 @@ void CMenuContConfig::_Init()
 	AddRow( TAB_CONTROLS, padDeadzone, ROW_H );
 
 	gamepadOptions.SetNameAndStatus( "Advanced Gamepad Options", NULL );
-	gamepadOptions.szHint = "Axis remapping and the rest of the engine's options";
-	gamepadOptions.onReleased = UI_GamePad_Menu;
+	gamepadOptions.szHint = "Axis remapping, move sensitivity, on-screen keyboard";
+	gamepadOptions.onReleased = UI_ContGamepadAxes_Menu;
 	AddRow( TAB_CONTROLS, gamepadOptions, ROW_H );
 
 	hdrGyro.SetNameAndStatus( "GYRO", NULL );
@@ -846,8 +332,12 @@ void CMenuContConfig::_Init()
 	showMapName.SetNameAndStatus( "Show Map Name", NULL );
 	showMapName.Setup( "scr_drawmapname", 1 );
 
+	crosshairToggle.SetNameAndStatus( "Crosshair", NULL );
+	crosshairToggle.Setup( "crosshair", 1 );
+
 	AddRow( TAB_INTERFACE, glyphStyle, ROW_H );
 	AddRow( TAB_INTERFACE, glyphPreview, ROW_H );
+	AddRow( TAB_INTERFACE, crosshairToggle, ROW_H );
 	AddRow( TAB_INTERFACE, showFps, ROW_H );
 	AddRow( TAB_INTERFACE, showMapName, ROW_H );
 
@@ -1199,8 +689,14 @@ void CMenuContConfig::ResetTabDefaults()
 
 bool CMenuContConfig::KeyDown( int key )
 {
+	// an open dropdown owns Esc (closes the list, not the screen); the base
+	// window would hide on Esc before the row ever saw the key
 	if( UI::Key::IsEscape( key ))
 	{
+		if( resolution.bOpen )
+			return resolution.KeyDown( key );
+		if( windowMode.bOpen )
+			return windowMode.KeyDown( key );
 		Hide();
 		return true;
 	}
@@ -1390,3 +886,190 @@ void CMenuContConfig::Draw()
 }
 
 ADD_MENU( menu_continuum_config, CMenuContConfig, UI_ContConfig_Menu );
+
+/*
+====================
+advanced gamepad options: hardware axis mapping, move sensitivity, OSK
+====================
+*/
+static const char *g_szAxisLabels[] =
+{
+	"Side", "Forward", "Pitch", "Yaw", "Right Trigger", "Left Trigger", "Not Bound"
+};
+static const char g_szAxisChars[] = "sfpyrl0";
+
+// one hardware axis slot of joy_axis_binding (default "sfpyrl")
+class CContAxisRow : public CContSpinRow
+{
+public:
+	void SetupAxis( int idx )
+	{
+		iAxis = idx;
+		szCvar = "joy_axis_binding"; // written by Write() below, char-wise
+		szLabels = g_szAxisLabels;
+		nCount = 7;
+		iDefault = idx; // default map is the identity: "sfpyrl"
+	}
+
+	void Reload() override
+	{
+		const char *b = EngFuncs::GetCvarString( "joy_axis_binding" );
+
+		iIndex = 6; // not bound
+		if( iAxis < (int)strlen( b ))
+		{
+			for( int i = 0; i < 6; i++ )
+			{
+				if( b[iAxis] == g_szAxisChars[i] )
+				{
+					iIndex = i;
+					break;
+				}
+			}
+		}
+		szValue = szLabels[iIndex];
+	}
+
+	void Write() override
+	{
+		char b[8];
+		Q_strncpy( b, EngFuncs::GetCvarString( "joy_axis_binding" ), sizeof( b ));
+
+		int len = strlen( b );
+		while( len < 6 )
+			b[len++] = '0';
+		b[6] = 0;
+
+		b[iAxis] = g_szAxisChars[iIndex];
+		EngFuncs::CvarSetString( "joy_axis_binding", b );
+	}
+
+	int iAxis;
+};
+
+class CMenuContGamepadAxes : public CMenuFramework
+{
+public:
+	CMenuContGamepadAxes() : CMenuFramework( "CMenuContGamepadAxes" ) { }
+
+	bool KeyDown( int key ) override;
+	void Draw() override;
+	void Hide() override;
+
+private:
+	void _Init() override;
+	void _VidInit() override;
+
+	CContAxisRow axis[6];
+	CContMultiSliderRow moveSide, moveForward;
+	CContToggleRow osk;
+};
+
+void CMenuContGamepadAxes::_Init()
+{
+	static const char *sideCvar[] = { "joy_side" };
+	static const char *fwdCvar[] = { "joy_forward" };
+
+	static char names[6][16];
+	for( int i = 0; i < 6; i++ )
+	{
+		snprintf( names[i], sizeof( names[i] ), "Axis %i", i + 1 );
+		axis[i].SetNameAndStatus( names[i], NULL );
+		axis[i].szHint = "Which stick/trigger this hardware axis drives";
+		axis[i].SetupAxis( i );
+		AddItem( axis[i] );
+	}
+
+	moveSide.SetNameAndStatus( "Side Move Sensitivity", NULL );
+	moveSide.SetupMulti( sideCvar, 1, 0.1f, 1.0f, 0.05f, 1.0f, 2 );
+	AddItem( moveSide );
+
+	moveForward.SetNameAndStatus( "Forward Move Sensitivity", NULL );
+	moveForward.SetupMulti( fwdCvar, 1, 0.1f, 1.0f, 0.05f, 1.0f, 2 );
+	AddItem( moveForward );
+
+	osk.SetNameAndStatus( "On-Screen Keyboard", NULL );
+	osk.szHint = "Built-in keyboard for text fields, for pad-only setups";
+	osk.Setup( "osk_enable", 0 );
+	AddItem( osk );
+}
+
+void CMenuContGamepadAxes::_VidInit()
+{
+	VidInitFonts();
+
+	const int itemH = 50, gap = 4;
+	int y = 208;
+
+	for( int i = 0; i < 6; i++, y += itemH + gap )
+		axis[i].SetRect( MARGIN, y, ROW_W, itemH );
+
+	moveSide.SetRect( MARGIN, y, ROW_W, itemH );
+	y += itemH + gap;
+	moveForward.SetRect( MARGIN, y, ROW_W, itemH );
+	y += itemH + gap;
+	osk.SetRect( MARGIN, y, ROW_W, itemH );
+}
+
+bool CMenuContGamepadAxes::KeyDown( int key )
+{
+	if( UI::Key::IsEscape( key ))
+	{
+		Hide();
+		return true;
+	}
+
+	if( key == K_MOUSE1 )
+	{
+		const int legendKey = LegendClickKey();
+		if( legendKey )
+			return KeyDown( legendKey );
+	}
+
+	if( key == K_X_BUTTON || key == 'x' )
+	{
+		for( int i = 0; i < 6; i++ )
+			axis[i].ResetDefault();
+		moveSide.ResetDefault();
+		moveForward.ResetDefault();
+		osk.ResetDefault();
+		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
+		return true;
+	}
+
+	return CMenuFramework::KeyDown( key );
+}
+
+void CMenuContGamepadAxes::Hide()
+{
+	EngFuncs::ClientCmd( false, "host_writeconfig\n" );
+	CMenuFramework::Hide();
+}
+
+void CMenuContGamepadAxes::Draw()
+{
+	static CImage noBackdrop;
+	DrawBackdrop( noBackdrop );
+
+	const int tx = MARGIN * uiStatic.scaleX;
+	const int ty = 64 * uiStatic.scaleY;
+	const int titleH = 30 * uiStatic.scaleY;
+	const int subH = 12 * uiStatic.scaleY;
+
+	UI_DrawString( fontTitle, tx, ty, ScreenWidth, titleH * 1.45f,
+		"GAMEPAD", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	UI_DrawString( fontSmall, tx, ty + titleH + 8 * uiStatic.scaleY, ScreenWidth, subH * 1.45f,
+		"AXIS MAPPING - SHARED BY ALL GAMES", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+
+	CMenuFramework::Draw();
+
+	static const LegendEntry legend[] =
+	{
+		{ GLYPH_A, GLYPH_COUNT, "Change" },
+		{ GLYPH_B, GLYPH_COUNT, "Back" },
+		{ GLYPH_X, GLYPH_COUNT, "Restore Defaults" },
+	};
+	DrawLegend( legend, V_ARRAYSIZE( legend ));
+}
+
+ADD_MENU( menu_continuum_gamepadaxes, CMenuContGamepadAxes, UI_ContGamepadAxes_Menu );

@@ -367,7 +367,7 @@ CContButton
 */
 CContButton::CContButton() : BaseClass(),
 	szHint( NULL ), szValue( NULL ), szBadge( NULL ),
-	szCard( NULL ), szCardTitle( NULL ), bCaution( false )
+	szCard( NULL ), szCardTitle( NULL ), bCaution( false ), bValueArrows( true )
 {
 	eTextAlignment = QM_LEFT;
 	SetSize( 400, 56 );
@@ -497,7 +497,7 @@ void CContButton::Draw()
 		UI_DrawString( fontBody, vx, vy, vw + 4, vh * 1.45f, szValue,
 			grayed ? clrInkFaint : clrInk, vh, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
-		if( t > 0.0f && !grayed )
+		if( t > 0.0f && !grayed && bValueArrows )
 		{
 			UI_DrawString( fontBody, vx - arrowPad, vy, arrowPad, vh * 1.45f, "<",
 				accent, vh, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );

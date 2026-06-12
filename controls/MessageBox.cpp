@@ -18,6 +18,7 @@ GNU General Public License for more details.
 #include "Action.h"
 #include "ItemsHolder.h"
 #include "MessageBox.h"
+#include "continuum/Continuum.h"
 
 CMenuMessageBox::CMenuMessageBox(const char *name) : BaseClass( name )
 {
@@ -36,8 +37,14 @@ void CMenuMessageBox::_Init()
 
 void CMenuMessageBox::Draw()
 {
-	EngFuncs::FillRGBA( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 20, 20, 20, 235 );
-	UI_DrawRectangle( m_scPos, m_scSize, uiInputFgColor );
+	// Continuum panel, matching CMenuYesNoMessageBox
+	Cont::VidInitFonts();
+	dlgMessage.font = Cont::fontBody;
+	dlgMessage.colorBase = Cont::clrInk;
+
+	UI_FillRect( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 0xF20E1014 );
+	UI_DrawRectangleExt( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 0x28FFFFFF, 1 );
+	UI_FillRect( m_scPos.x, m_scPos.y, m_scSize.w, 3 * uiStatic.scaleY, Cont::clrAccent );
 	BaseClass::Draw();
 }
 

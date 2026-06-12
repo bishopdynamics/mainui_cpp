@@ -19,8 +19,51 @@ GNU General Public License for more details.
 #include "PicButton.h"
 #include "YesNoMessageBox.h"
 #include "Utils.h"
+#include "FontManager.h"
+#include "continuum/Continuum.h"
 
 static void ToggleInactiveInternalCb( CMenuBaseItem *pSelf, void *pExtra );
+
+/*
+==============
+CMenuDialogButton::Draw
+
+flat Continuum-style button: focused gets the soft fill + accent left edge,
+label in the Michroma item font
+==============
+*/
+void CMenuDialogButton::Draw()
+{
+	Cont::VidInitFonts(); // cheap, the builder dedups per video mode
+
+	const bool focused = IsCurrentSelected();
+	const bool grayed = FBitSet( iFlags, QMF_GRAYED );
+
+	const int x = m_scPos.x;
+	const int y = m_scPos.y;
+	const int w = m_scSize.w;
+	const int h = m_scSize.h;
+
+	if( focused && !grayed )
+	{
+		UI_FillRect( x, y, w, h, Cont::clrAccentSoft );
+		UI_FillRect( x, y, 3 * uiStatic.scaleX, h, Cont::clrAccent );
+	}
+	else
+	{
+		UI_FillRect( x, y, w, h, 0x14FFFFFF );
+	}
+
+	unsigned int color = grayed ? Cont::clrInkFaint : ( focused ? Cont::clrInk : Cont::clrInkDim );
+
+	// bPulse marks the recommended choice (HighlightChoice)
+	if( bPulse && !focused )
+		color = PackAlpha( Cont::clrAccent, 255 * ( 0.65f + 0.35f * sin( (float)uiStatic.realTime / UI_PULSE_DIVISOR )));
+
+	const int textH = 15 * uiStatic.scaleY;
+	UI_DrawString( Cont::fontItem, x, y + ( h - textH ) / 2, w, textH * 1.45f,
+		szName, color, textH, QM_CENTER, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
+}
 
 CMenuYesNoMessageBox::CMenuYesNoMessageBox( bool alert ) : BaseClass( "YesNoMessageBox")
 {
@@ -110,6 +153,12 @@ void CMenuYesNoMessageBox::_VidInit()
 	pos.y += uiStatic.yOffset;
 	CalcPosition();
 	CalcSizes();
+
+	// Continuum theme: body sans for the message text
+	Cont::VidInitFonts();
+	dlgMessage1.font = Cont::fontBody;
+	dlgMessage1.colorBase = Cont::clrInk;
+	dlgMessage1.charSize = 17;
 }
 
 /*
@@ -145,10 +194,13 @@ CMenuYesNoMessageBox::Draw
 */
 void CMenuYesNoMessageBox::Draw()
 {
-	UI_FillRect( 0, 0, gpGlobals->scrWidth, gpGlobals->scrHeight, 0x40000000 );
+	// deep scrim so the dialog reads against any backdrop
+	UI_FillRect( 0, 0, gpGlobals->scrWidth, gpGlobals->scrHeight, 0x96000000 );
 
-	EngFuncs::FillRGBA( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 20, 20, 20, 235 );
-	UI_DrawRectangle( m_scPos, m_scSize, uiInputFgColor );
+	// Continuum panel: near-black card, hairline border, accent top edge
+	UI_FillRect( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 0xF20E1014 );
+	UI_DrawRectangleExt( m_scPos.x, m_scPos.y, m_scSize.w, m_scSize.h, 0x28FFFFFF, 1 );
+	UI_FillRect( m_scPos.x, m_scPos.y, m_scSize.w, 3 * uiStatic.scaleY, Cont::clrAccent );
 
 	CMenuBaseWindow::Draw();
 }

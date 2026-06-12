@@ -130,7 +130,7 @@ void CMenuContGamePage::_Init()
 	saveGame.onReleased = UI_SaveGame_Menu;
 
 	multiplayer.SetNameAndStatus( "Multiplayer", NULL );
-	multiplayer.onReleased = UI_MultiPlayer_Menu;
+	multiplayer.onReleased = UI_ContMultiplayer_Menu;
 
 	dialog.Link( this );
 

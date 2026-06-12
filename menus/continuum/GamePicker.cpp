@@ -19,8 +19,8 @@ GNU General Public License for more details.
 
 using namespace Cont;
 
-// curated metadata for the games we ship; anything else found on disk gets a
-// generic card after these
+// curated art + labels for the games we know; every installed game/expansion/
+// mod is offered regardless — unknown ones get a generic card after these
 struct gamedef_t
 {
 	const char *folder;
@@ -69,7 +69,7 @@ private:
 	{
 		char folder[64];
 		char title[64];
-		char meta[64];
+		char meta[136];
 		CImage art;
 		CImage backdrop;
 		bool current;
@@ -144,7 +144,10 @@ void CMenuContGamePicker::RefreshGames()
 		card_t &c = m_Cards[m_iCount++];
 		Q_strncpy( c.folder, gi->gamefolder, sizeof( c.folder ));
 		Q_strncpy( c.title, gi->title, sizeof( c.title ));
-		Q_strncpy( c.meta, gi->gamefolder, sizeof( c.meta ));
+		if( gi->type[0] )
+			snprintf( c.meta, sizeof( c.meta ), "%s - %s", gi->type, gi->gamefolder );
+		else
+			snprintf( c.meta, sizeof( c.meta ), "Mod - %s", gi->gamefolder );
 		GameArt( c.folder, c.art );
 		GameBackdrop( c.folder, c.backdrop );
 		c.current = !stricmp( currentGame, c.folder );

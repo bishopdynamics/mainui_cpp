@@ -1439,8 +1439,14 @@ void CMenuServerBrowser::AddServerToList( netadr_t adr, const char *info )
 UI_AddServerToList
 =================
 */
+bool UI_ContServers_AddServer( netadr_t adr, const char *info ); // continuum/Multiplayer.cpp
+
 void UI_AddServerToList( netadr_t adr, const char *info )
 {
+	// the Continuum browser takes results while it's the visible screen
+	if( UI_ContServers_AddServer( adr, info ))
+		return;
+
 	if( !menu_internetgames )
 		return;
 

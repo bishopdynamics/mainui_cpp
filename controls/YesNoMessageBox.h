@@ -21,6 +21,14 @@ GNU General Public License for more details.
 #include "ItemsHolder.h"
 #include "BaseWindow.h"
 
+// dialog button drawn flat in the Continuum theme (menus/continuum/Continuum.h)
+// instead of the legacy bitmap strip; everything else is stock CMenuPicButton
+class CMenuDialogButton : public CMenuPicButton
+{
+public:
+	void Draw() override;
+};
+
 class CMenuYesNoMessageBox : public CMenuBaseWindow
 {
 public:
@@ -51,8 +59,8 @@ public:
 
 	bool bAutoHide;
 	CMenuAction		dlgMessage1;
-	CMenuPicButton	yes;
-	CMenuPicButton	no;
+	CMenuDialogButton	yes;
+	CMenuDialogButton	no;
 
 private:
 	static void OpenCb( CMenuBaseItem *, void *pExtra );
