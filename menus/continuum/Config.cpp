@@ -167,7 +167,7 @@ private:
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow detailTex, overbright, dynLights, shadows, lightExt, ripple, litWater, fovAdjust;
 	CContSliderRow ambient, lodBias, conFontSize;
-	CContSpinRow decals, fpsMax, renderScale;
+	CContSpinRow decals, fpsMax, renderScale, conFont;
 	CContMsaaRow msaa;
 };
 
@@ -467,6 +467,13 @@ void CMenuContConfig::_Init()
 
 	hdrConsole.SetNameAndStatus( "CONSOLE", NULL );
 	AddRow( TAB_ADVANCED, hdrConsole, HEADER_H );
+
+	static const char *conFontLabels[] = { "Classic", "Modern" };
+	static const float conFontValues[] = { 0, 1 };
+	conFont.SetNameAndStatus( "Console Font", NULL );
+	conFont.szHint = "Modern renders gfx/fonts/console.ttf - swap that file for any font you like";
+	conFont.Setup( "con_ttffont", conFontLabels, conFontValues, 2, 1 );
+	AddRow( TAB_ADVANCED, conFont, ROW_H );
 
 	conFontSize.SetNameAndStatus( "Console Font Size", NULL );
 	conFontSize.szHint = "Applies immediately";
