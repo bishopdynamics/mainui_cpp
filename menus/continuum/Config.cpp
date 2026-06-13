@@ -25,6 +25,31 @@ using namespace Cont;
 #define CONTENT_TOP 208
 #define CONTENT_BOTTOM ( 768 - LEGEND_H - 22 )
 
+// Is a high-definition content pack present for the active game? HL and its
+// expansions ship models/sprites/sounds in a sibling <gamedir>_hd folder that
+// the engine only mounts when fs_mount_hd is set. The folder isn't on the
+// search path until then, so probe it through the read-only base path (./)
+// for a few models common to every official HD pack.
+static bool HdContentPresent( void )
+{
+	char gamedir[64] = "valve";
+	EngFuncs::GetGameDir( gamedir );
+
+	static const char *markers[] =
+	{
+		"models/gman.mdl", "models/barney.mdl", "models/agrunt.mdl"
+	};
+
+	for( size_t i = 0; i < V_ARRAYSIZE( markers ); i++ )
+	{
+		char path[160];
+		snprintf( path, sizeof( path ), "%s_hd/%s", gamedir, markers[i] );
+		if( EngFuncs::FileExists( path, false ))
+			return true;
+	}
+	return false;
+}
+
 /*
 ====================
 screen-specific row widgets (the shared ones live in Continuum.h)
@@ -163,7 +188,7 @@ private:
 	// interface
 	CContSpinRow glyphStyle;
 	CContGlyphPreviewRow glyphPreview;
-	CContToggleRow showFps, showMapName, crosshairToggle, classicUi;
+	CContToggleRow showFps, showMapName, crosshairToggle, classicUi, hdModels;
 
 	// advanced
 	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf, hdrConsole;
@@ -349,11 +374,25 @@ void CMenuContConfig::_Init()
 		UI_SetActiveMenu( true );
 	});
 
+	// HD model pack: only meaningful when the game ships a <gamedir>_hd folder
+	hdModels.SetNameAndStatus( "HD Models", NULL );
+	hdModels.szHint = "Use the high-definition model & sprite pack";
+	hdModels.Setup( "fs_mount_hd", 0 );
+	// fs_mount_hd only changes which files resolve after a filesystem rescan;
+	// the row writes the cvar, then we remount so it applies without a restart
+	SET_EVENT_MULTI( hdModels.onChanged,
+	{
+		(void)pSelf; (void)pExtra;
+		EngFuncs::ClientCmd( false, "fs_rescan\n" );
+	});
+
 	AddRow( TAB_INTERFACE, glyphStyle, ROW_H );
 	AddRow( TAB_INTERFACE, glyphPreview, ROW_H );
 	AddRow( TAB_INTERFACE, crosshairToggle, ROW_H );
 	AddRow( TAB_INTERFACE, showFps, ROW_H );
 	AddRow( TAB_INTERFACE, showMapName, ROW_H );
+	if( HdContentPresent( ))
+		AddRow( TAB_INTERFACE, hdModels, ROW_H );
 	AddRow( TAB_INTERFACE, classicUi, ROW_H );
 
 	// ---- advanced ----
