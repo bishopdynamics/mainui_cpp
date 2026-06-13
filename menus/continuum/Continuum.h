@@ -38,6 +38,7 @@ void UI_ContMultiplayer_Menu( void );
 void UI_ContLoadGame_Menu( void );
 void UI_ContSaveGame_Menu( void );
 void UI_ContCharacter_Menu( void );
+void UI_ContCheats_Menu( void );
 
 // the engine's server-list callback feeds the Continuum browser while it's
 // on screen; returns false when the stock browser should take the result

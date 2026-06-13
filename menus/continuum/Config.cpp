@@ -192,7 +192,7 @@ private:
 
 	// advanced
 	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf, hdrConsole;
-	CContToggleRow levelStreaming;
+	CContToggleRow levelStreaming, enableCheats;
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow detailTex, overbright, dynLights, shadows, lightExt, ripple, litWater, fovAdjust, conEnable;
 	CContSliderRow ambient, lodBias, conFontSize;
@@ -410,6 +410,18 @@ void CMenuContConfig::_Init()
 		"reclaim the memory on next launch. Some people like to suffer.";
 	levelStreaming.Setup( "host_level_streaming", 1 );
 	AddRow( TAB_ADVANCED, levelStreaming, ROW_H );
+
+	enableCheats.SetNameAndStatus( "Enable Cheats", NULL );
+	enableCheats.szHint = "Adds a Cheats page to the in-game menu";
+	enableCheats.bCaution = true;
+	enableCheats.szCardTitle = "ENABLE CHEATS";
+	enableCheats.szCard =
+		"Sets sv_cheats and adds a Cheats page to the in-game menu (god mode, "
+		"noclip, give weapons, and so on).\n\n"
+		"Toggle cheats like god mode are re-applied automatically after every "
+		"seamless level change, so they don't silently switch off mid-game.";
+	enableCheats.Setup( "sv_cheats", 0 );
+	AddRow( TAB_ADVANCED, enableCheats, ROW_H );
 
 	hdrTex.SetNameAndStatus( "TEXTURES", NULL );
 	AddRow( TAB_ADVANCED, hdrTex, HEADER_H );

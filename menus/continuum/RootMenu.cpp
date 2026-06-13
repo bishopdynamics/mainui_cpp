@@ -39,6 +39,7 @@ private:
 	CContButton resumeGame;
 	CContButton saveGame;
 	CContButton loadGame;
+	CContButton cheats;
 	CContButton leaveGame;
 	CContButton game;
 	CContButton configuration;
@@ -145,6 +146,9 @@ void CMenuContRoot::_Init()
 	loadGame.SetNameAndStatus( "Load Game", NULL );
 	loadGame.onReleased = UI_ContLoadGame_Menu;
 
+	cheats.SetNameAndStatus( "Cheats", NULL );
+	cheats.onReleased = UI_ContCheats_Menu;
+
 	leaveGame.SetNameAndStatus( "Main Menu", NULL );
 	leaveGame.onReleased = VoidCb( &CMenuContRoot::LeaveGameCb );
 
@@ -162,6 +166,7 @@ void CMenuContRoot::_Init()
 	AddItem( resumeGame );
 	AddItem( saveGame );
 	AddItem( loadGame );
+	AddItem( cheats );
 	AddItem( leaveGame );
 	AddItem( game );
 	AddItem( configuration );
@@ -176,9 +181,11 @@ void CMenuContRoot::LayoutRows()
 
 	// mid-game the menu is about THIS game: save/load (singleplayer) and
 	// leaving; switching games means going through Main Menu first
+	const bool cheatsOn = EngFuncs::GetCvarFloat( "sv_cheats" ) != 0.0f;
 	resumeGame.SetVisibility( connected );
 	saveGame.SetVisibility( single );
 	loadGame.SetVisibility( single );
+	cheats.SetVisibility( single && cheatsOn );
 	leaveGame.SetVisibility( connected );
 	leaveGame.szName = gpGlobals->maxClients > 1 ? "Disconnect" : "Main Menu";
 	game.SetVisibility( !connected );
@@ -196,6 +203,11 @@ void CMenuContRoot::LayoutRows()
 			y += itemH + gap;
 			loadGame.SetRect( MARGIN, y, 420, itemH );
 			y += itemH + gap;
+			if( cheatsOn )
+			{
+				cheats.SetRect( MARGIN, y, 420, itemH );
+				y += itemH + gap;
+			}
 		}
 		leaveGame.SetRect( MARGIN, y, 420, itemH );
 		y += itemH + gap;
