@@ -208,8 +208,9 @@ void CMenuAdvSettings::_Init()
 	AddItem( lodBias );
 
 	AddItem( banner );
-	AddButton( L( "Game & menu" ), L( "Streaming, console and menu-style settings" ), PC_ADV_OPT, UI_AdvSettings2_Menu, QMF_NOTIFY );
-	AddButton( L( "Done" ), L( "Go back to the previous menu" ), PC_DONE, VoidCb( &CMenuAdvSettings::Hide ), QMF_NOTIFY );
+	// no status descriptions: they render right where the settings live
+	AddButton( L( "Game & menu" ), NULL, PC_ADV_OPT, UI_AdvSettings2_Menu, QMF_NOTIFY );
+	AddButton( L( "Done" ), NULL, PC_DONE, VoidCb( &CMenuAdvSettings::Hide ), QMF_NOTIFY );
 }
 
 void CMenuAdvSettings::_VidInit()
@@ -306,7 +307,7 @@ void CMenuAdvSettings2::_Init()
 	AddItem( conFontSize );
 
 	AddItem( banner );
-	AddButton( L( "Done" ), L( "Go back to the previous menu" ), PC_DONE, VoidCb( &CMenuAdvSettings2::Hide ), QMF_NOTIFY );
+	AddButton( L( "Done" ), NULL, PC_DONE, VoidCb( &CMenuAdvSettings2::Hide ), QMF_NOTIFY );
 }
 
 void CMenuAdvSettings2::_VidInit()

@@ -49,11 +49,6 @@ void CMenuOptions::_Init( void )
 {
 	banner.SetPicture( ART_BANNER );
 
-	msgBox.SetMessage( L( "Check the Internet for updates?" ) );
-	SET_EVENT( msgBox.onPositive, UI_OpenUpdatePage( false, true ) );
-
-	msgBox.Link( this );
-
 	AddItem( banner );
 	AddButton( L( "Controls" ), L( "Change keyboard and mouse settings" ),
 		PC_CONTROLS, UI_Controls_Menu, QMF_NOTIFY );
@@ -67,8 +62,6 @@ void CMenuOptions::_Init( void )
 		PC_GAMEPAD, UI_GamePad_Menu, QMF_NOTIFY, 'g' );
 	AddButton( L( "Advanced" ), L( "Level streaming, renderer, console and menu-style settings" ),
 		PC_ADV_OPT, UI_AdvSettings_Menu, QMF_NOTIFY );
-	AddButton( L( "Update" ), L( "Check for updates" ),
-		PC_UPDATE, msgBox.MakeOpenEvent(), QMF_NOTIFY );
 	AddButton( L( "Done" ), L( "Go back to the Main menu" ),
 		PC_DONE, VoidCb( &CMenuOptions::Hide ), QMF_NOTIFY );
 }
