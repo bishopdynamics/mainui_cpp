@@ -194,7 +194,7 @@ private:
 	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf, hdrConsole;
 	CContToggleRow levelStreaming, enableCheats;
 	CContSpinRow aniso, texFilter, lmFilter;
-	CContToggleRow detailTex, overbright, dynLights, shadows, lightExt, ripple, litWater, fovAdjust, conEnable;
+	CContToggleRow detailTex, overbright, dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
 	CContToggleRow aoEnable;
 	CContButton aoCustomize;
 	CContSliderRow ambient, lodBias, conFontSize;
@@ -202,6 +202,7 @@ private:
 	CContMsaaRow msaa;
 
 	// gameplay
+	CContAlwaysRunRow alwaysRun;
 	CContToggleRow flProjected, flInfinite;
 	CContButton flCustomize;
 };
@@ -468,11 +469,6 @@ void CMenuContConfig::_Init()
 	dynLights.Setup( "r_dynamic", 1 );
 	AddRow( TAB_ADVANCED, dynLights, ROW_H );
 
-	shadows.SetNameAndStatus( "Entity Shadows", NULL );
-	shadows.szHint = "Simple shadows under players and monsters";
-	shadows.Setup( "r_shadows", 0 );
-	AddRow( TAB_ADVANCED, shadows, ROW_H );
-
 	ambient.SetNameAndStatus( "Ambient Light", NULL );
 	ambient.szHint = "Raise to brighten dark maps without washing out gamma";
 	ambient.Setup( "r_lighting_ambient", 0, 1, 0.05f, 0.3f, 2 );
@@ -494,6 +490,10 @@ void CMenuContConfig::_Init()
 	AddRow( TAB_ADVANCED, aoCustomize, ROW_H );
 
 	// --- GAMEPLAY tab (flashlight detail settings live on the Customize sub-page) ---
+	alwaysRun.SetNameAndStatus( "Always Run", NULL );
+	alwaysRun.szHint = "On: run by default, hold the speed key (Shift) to walk. Off: walk by default, hold to run";
+	AddRow( TAB_GAMEPLAY, alwaysRun, ROW_H );
+
 	flProjected.SetNameAndStatus( "Improved Flashlight", NULL );
 	flProjected.szHint = "Projected-texture spotlight instead of the stock round blob";
 	flProjected.Setup( "r_flashlight_projected", 0 );

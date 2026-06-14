@@ -627,6 +627,43 @@ public:
 	}
 };
 
+// "Always Run" toggle. ON (stock): run by default, hold the speed key to walk.
+// OFF: walk by default, hold the speed key to run. No engine changes - we just
+// swap the movement-speed cvars and the speed-key multiplier. The speed key
+// always *multiplies* movement, so <1 makes it a "walk" key and >1 a "run" key.
+class CContAlwaysRunRow : public CContToggleRow
+{
+public:
+	enum { RUN = 400, WALK = 120 }; // WALK == RUN * 0.3 (the stock speed-key walk pace)
+
+	void Apply( bool on )
+	{
+		const float speed = on ? (float)RUN : (float)WALK;
+		EngFuncs::CvarSetValue( "cl_forwardspeed", speed );
+		EngFuncs::CvarSetValue( "cl_backspeed", speed );
+		EngFuncs::CvarSetValue( "cl_sidespeed", speed );
+		EngFuncs::CvarSetValue( "cl_movespeedkey", on ? 0.3f : (float)RUN / (float)WALK );
+	}
+
+	// always-run leaves the speed key as a walk multiplier ( <1 )
+	void Reload() override { bOn = EngFuncs::GetCvarFloat( "cl_movespeedkey" ) < 1.0f; }
+	void ResetDefault() override { Apply( true ); bOn = true; }
+
+	bool KeyDown( int key ) override
+	{
+		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) || UI::Key::IsEnter( key )
+			|| ( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize )))
+		{
+			bOn = !bOn;
+			Apply( bOn );
+			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
+			_Event( QM_CHANGED );
+			return true;
+		}
+		return CContButton::KeyDown( key );
+	}
+};
+
 // slider that drives several cvars at once with one magnitude, preserving
 // each cvar's sign (joy look sensitivity, stick deadzones)
 class CContMultiSliderRow : public CContSliderRow
