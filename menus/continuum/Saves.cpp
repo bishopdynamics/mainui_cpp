@@ -429,7 +429,7 @@ void CMenuContSaves::Draw()
 	if( !m_Saves.Count( ))
 	{
 		const int msgH = 14 * uiStatic.scaleY;
-		UI_DrawString( fontBody, 0, ScreenHeight * 0.45f, ScreenWidth, msgH * 1.45f,
+		UI_DrawString( fontBody, MARGIN * uiStatic.scaleX, ScreenHeight * 0.45f, listW * uiStatic.scaleX, msgH * 1.45f,
 			m_bSaveMode ? "Nothing to save - start a game first" : "No saved games yet",
 			clrInkDim, msgH, QM_CENTER, ETF_NOSIZELIMIT | ETF_FORCECOL );
 	}
