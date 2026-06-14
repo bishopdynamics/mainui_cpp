@@ -171,10 +171,17 @@ const char *GlyphStyle( void )
 		case 12: // Joy-Con right
 		case 13: // Joy-Con pair
 			return "switch";
-		case 0:  // no controller seen
-			return "kb";
-		default: // Xbox of any age, and everything else
-			return "xbox";
+		default:
+			// SDL has no Steam Deck controller type, so the Deck's built-in
+			// controls report as Xbox/Virtual (or aren't enumerated yet). On
+			// Deck hardware prefer its own glyphs for everything that isn't a
+			// distinct PlayStation/Switch pad (handled above) -- a Deck has no
+			// physical keyboard, so don't fall back to the kb set there.
+			if( EngFuncs::GetCvarFloat( "sys_steamdeck" ) != 0.0f )
+				return "deck";
+			if( !(int)EngFuncs::GetCvarFloat( "joy_controller_type" ))
+				return "kb"; // no controller seen -> keyboard/mouse
+			return "xbox";   // Xbox of any age, and everything else
 		}
 	}
 
