@@ -120,7 +120,7 @@ public:
 	void FocusUiToggle(); // land on the Interface tab with Classic Menu focused
 
 private:
-	enum ETab { TAB_VIDEO = 0, TAB_AUDIO, TAB_CONTROLS, TAB_INTERFACE, TAB_ADVANCED, TAB_COUNT };
+	enum ETab { TAB_VIDEO = 0, TAB_AUDIO, TAB_CONTROLS, TAB_INTERFACE, TAB_GAMEPLAY, TAB_ADVANCED, TAB_COUNT };
 
 	void SetTab( int tab );
 	void ApplyLayout();
@@ -198,6 +198,10 @@ private:
 	CContSliderRow ambient, lodBias, conFontSize;
 	CContSpinRow decals, fpsMax, renderScale, conFont;
 	CContMsaaRow msaa;
+
+	// gameplay
+	CContToggleRow flProjected, flInfinite;
+	CContButton flCustomize;
 };
 
 void CMenuContConfig::AddRow( int tab, CContButton &item, int logicalH )
@@ -476,6 +480,22 @@ void CMenuContConfig::_Init()
 	lightExt.szHint = "Entities take light from the world and brush models";
 	lightExt.Setup( "r_lighting_extended", 1 );
 	AddRow( TAB_ADVANCED, lightExt, ROW_H );
+
+	// --- GAMEPLAY tab (flashlight detail settings live on the Customize sub-page) ---
+	flProjected.SetNameAndStatus( "Improved Flashlight", NULL );
+	flProjected.szHint = "Projected-texture spotlight instead of the stock round blob";
+	flProjected.Setup( "r_flashlight_projected", 0 );
+	AddRow( TAB_GAMEPLAY, flProjected, ROW_H );
+
+	flInfinite.SetNameAndStatus( "Infinite Battery", NULL );
+	flInfinite.szHint = "Flashlight never drains and never auto-shuts-off";
+	flInfinite.Setup( "flashlight_infinite", 0 );
+	AddRow( TAB_GAMEPLAY, flInfinite, ROW_H );
+
+	flCustomize.SetNameAndStatus( "Customize Flashlight...", NULL );
+	flCustomize.szHint = "Beam shape, brightness, range, shadows and more";
+	flCustomize.onReleased = UI_ContFlashlight_Menu;
+	AddRow( TAB_GAMEPLAY, flCustomize, ROW_H );
 
 	hdrFx.SetNameAndStatus( "EFFECTS", NULL );
 	AddRow( TAB_ADVANCED, hdrFx, HEADER_H );
@@ -869,7 +889,7 @@ void CMenuContConfig::Draw()
 		"SHARED BY ALL GAMES", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	// tab bar
-	static const char *tabNames[TAB_COUNT] = { "VIDEO", "AUDIO", "CONTROLS", "INTERFACE", "ADVANCED" };
+	static const char *tabNames[TAB_COUNT] = { "VIDEO", "AUDIO", "CONTROLS", "INTERFACE", "GAMEPLAY", "ADVANCED" };
 	const int tabH = 15 * uiStatic.scaleY;
 	const int tabY = 160 * uiStatic.scaleY;
 	int x = tx;
@@ -1186,3 +1206,144 @@ void CMenuContGamepadAxes::Draw()
 }
 
 ADD_MENU( menu_continuum_gamepadaxes, CMenuContGamepadAxes, UI_ContGamepadAxes_Menu );
+
+//=============================================================================
+// Flashlight customize sub-page (opened from the Gameplay tab)
+//=============================================================================
+class CMenuContFlashlight : public CMenuFramework
+{
+public:
+	CMenuContFlashlight() : CMenuFramework( "CMenuContFlashlight" ) { }
+
+	bool KeyDown( int key ) override;
+	void Draw() override;
+	void Hide() override;
+
+private:
+	void _Init() override;
+	void _VidInit() override;
+
+	CContSliderRow beam, spillCone, spillBright, range, bright, vOffset, shadowSize;
+	CContToggleRow tint, shadows;
+};
+
+void CMenuContFlashlight::_Init()
+{
+	beam.SetNameAndStatus( "Beam Angle", NULL );
+	beam.szHint = "Width of the bright hotspot, in degrees";
+	beam.Setup( "r_flashlight_cone", 10, 90, 5, 35, 0 );
+	AddItem( beam );
+
+	spillCone.SetNameAndStatus( "Spill Angle", NULL );
+	spillCone.szHint = "Width of the dimmer halo around the beam (the field)";
+	spillCone.Setup( "r_flashlight_spill_cone", 20, 130, 5, 90, 0 );
+	AddItem( spillCone );
+
+	spillBright.SetNameAndStatus( "Spill Brightness", NULL );
+	spillBright.szHint = "How bright the spill halo is, relative to the beam";
+	spillBright.Setup( "r_flashlight_spill_intensity", 0.0f, 1.0f, 0.05f, 0.15f, 2 );
+	AddItem( spillBright );
+
+	range.SetNameAndStatus( "Range", NULL );
+	range.szHint = "How far the beam reaches before it fades out";
+	range.Setup( "r_flashlight_range", 400, 5000, 100, 3000, 0 );
+	AddItem( range );
+
+	bright.SetNameAndStatus( "Brightness", NULL );
+	bright.szHint = "Beam brightness; above 1 adds extra additive passes for a much brighter light";
+	bright.Setup( "r_flashlight_intensity", 0.2f, 6.0f, 0.2f, 3.0f, 1 );
+	AddItem( bright );
+
+	vOffset.SetNameAndStatus( "Vertical Offset", NULL );
+	vOffset.szHint = "Light height vs the eye for shadow parallax: + above (headlamp), - below";
+	vOffset.Setup( "r_flashlight_offset", -20, 20, 2, 4, 0 );
+	AddItem( vOffset );
+
+	tint.SetNameAndStatus( "Tint by Surface", NULL );
+	tint.szHint = "Beam reveals the surface texture instead of a flat glow";
+	tint.Setup( "r_flashlight_albedo", 1 );
+	AddItem( tint );
+
+	shadows.SetNameAndStatus( "Cast Shadows", NULL );
+	shadows.szHint = "The beam is blocked by walls, props and monsters";
+	shadows.Setup( "r_flashlight_shadows", 1 );
+	AddItem( shadows );
+
+	shadowSize.SetNameAndStatus( "Shadow Resolution", NULL );
+	shadowSize.szHint = "Shadow-map size in texels; higher = crisper shadow edges, more GPU (capped to the window size)";
+	shadowSize.Setup( "r_flashlight_shadow_size", 256, 2048, 256, 512, 0 );
+	AddItem( shadowSize );
+}
+
+void CMenuContFlashlight::_VidInit()
+{
+	VidInitFonts();
+
+	const int itemH = 50, gap = 4;
+	int y = 208;
+
+	CContButton *rows[] = { &beam, &spillCone, &spillBright, &range, &bright, &vOffset, &tint, &shadows, &shadowSize };
+	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
+		rows[i]->SetRect( MARGIN, y, ROW_W, itemH );
+}
+
+bool CMenuContFlashlight::KeyDown( int key )
+{
+	if( UI::Key::IsEscape( key ))
+	{
+		Hide();
+		return true;
+	}
+
+	if( key == K_MOUSE1 )
+	{
+		const int legendKey = LegendClickKey();
+		if( legendKey )
+			return KeyDown( legendKey );
+	}
+
+	if( key == K_X_BUTTON || key == 'x' )
+	{
+		beam.ResetDefault(); spillCone.ResetDefault(); spillBright.ResetDefault();
+		range.ResetDefault(); bright.ResetDefault(); vOffset.ResetDefault();
+		tint.ResetDefault(); shadows.ResetDefault(); shadowSize.ResetDefault();
+		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
+		return true;
+	}
+
+	return CMenuFramework::KeyDown( key );
+}
+
+void CMenuContFlashlight::Hide()
+{
+	EngFuncs::ClientCmd( false, "host_writeconfig\n" );
+	CMenuFramework::Hide();
+}
+
+void CMenuContFlashlight::Draw()
+{
+	static CImage noBackdrop;
+	DrawBackdrop( noBackdrop );
+
+	const int tx = MARGIN * uiStatic.scaleX;
+	const int ty = 64 * uiStatic.scaleY;
+	const int titleH = 30 * uiStatic.scaleY;
+	const int subH = 12 * uiStatic.scaleY;
+
+	UI_DrawString( fontTitle, tx, ty, ScreenWidth, titleH * 1.45f,
+		"FLASHLIGHT", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	UI_DrawString( fontSmall, tx, ty + titleH + 8 * uiStatic.scaleY, ScreenWidth, subH * 1.45f,
+		"BEAM, SHADOWS AND MORE - SHARED BY ALL GAMES", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+
+	CMenuFramework::Draw();
+
+	static const LegendEntry legend[] =
+	{
+		{ GLYPH_A, GLYPH_COUNT, "Change" },
+		{ GLYPH_B, GLYPH_COUNT, "Back" },
+		{ GLYPH_X, GLYPH_COUNT, "Restore Defaults" },
+	};
+	DrawLegend( legend, V_ARRAYSIZE( legend ));
+}
+
+ADD_MENU( menu_continuum_flashlight, CMenuContFlashlight, UI_ContFlashlight_Menu );
