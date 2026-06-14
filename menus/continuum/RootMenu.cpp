@@ -190,36 +190,43 @@ void CMenuContRoot::LayoutRows()
 	leaveGame.szName = gpGlobals->maxClients > 1 ? "Disconnect" : "Main Menu";
 	game.SetVisibility( !connected );
 
-	int y = 300;
-	const int itemH = 64, gap = 6;
-
+	// collect the rows that are actually showing, in display order, so the
+	// stack height tracks the row count (mid-game with cheats on is the tall
+	// case: Resume/Save/Load/Cheats/Main Menu/Configuration/Quit)
+	CContButton *rows[8];
+	int n = 0;
 	if( connected )
 	{
-		resumeGame.SetRect( MARGIN, y, 420, itemH );
-		y += itemH + gap;
+		rows[n++] = &resumeGame;
 		if( single )
 		{
-			saveGame.SetRect( MARGIN, y, 420, itemH );
-			y += itemH + gap;
-			loadGame.SetRect( MARGIN, y, 420, itemH );
-			y += itemH + gap;
+			rows[n++] = &saveGame;
+			rows[n++] = &loadGame;
 			if( cheatsOn )
-			{
-				cheats.SetRect( MARGIN, y, 420, itemH );
-				y += itemH + gap;
-			}
+				rows[n++] = &cheats;
 		}
-		leaveGame.SetRect( MARGIN, y, 420, itemH );
-		y += itemH + gap;
+		rows[n++] = &leaveGame;
 	}
 	else
+		rows[n++] = &game;
+	rows[n++] = &configuration;
+	rows[n++] = &quit;
+
+	const int itemH = 64, gap = 6;
+	const int blockH = n * itemH + ( n - 1 ) * gap;
+
+	// preferred upper-third anchor, but never let the stack run under the bottom
+	// legend/input-prompts bar: shift the whole block up just enough to fit
+	const int bottomLimit = 768 - LEGEND_H - 24; // logical space is 768 tall
+	int y = 300;
+	if( y + blockH > bottomLimit )
+		y = bottomLimit - blockH;
+
+	for( int i = 0; i < n; i++ )
 	{
-		game.SetRect( MARGIN, y, 420, itemH );
+		rows[i]->SetRect( MARGIN, y, 420, itemH );
 		y += itemH + gap;
 	}
-	configuration.SetRect( MARGIN, y, 420, itemH );
-	y += itemH + gap;
-	quit.SetRect( MARGIN, y, 420, itemH );
 
 	// SetRect only stores logical coords; rescale them now
 	CalcItemsPositions();
