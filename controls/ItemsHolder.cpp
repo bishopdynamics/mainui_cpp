@@ -239,8 +239,11 @@ bool CMenuItemsHolder::MouseMove( int x, int y )
 			m_pItems[m_iCursor]->PlayLocalSound( uiStatic.sounds[SND_MOVE] );
 		}
 
+		// only stamp the focus time on enter, so the highlight animation
+		// plays once instead of restarting on every mouse move within the item
+		if( !FBitSet( m_pItems[m_iCursor]->iFlags, QMF_HASMOUSEFOCUS ))
+			m_pItems[m_iCursor]->m_iLastFocusTime = uiStatic.realTime;
 		SetBits( m_pItems[m_iCursor]->iFlags, QMF_HASMOUSEFOCUS );
-		m_pItems[m_iCursor]->m_iLastFocusTime = uiStatic.realTime;
 		// Should we stop at first matched item?
 		return true;
 	}
