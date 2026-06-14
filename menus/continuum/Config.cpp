@@ -386,11 +386,13 @@ void CMenuContConfig::_Init()
 	hdModels.szHint = "Use the high-definition model & sprite pack";
 	hdModels.Setup( "fs_mount_hd", 0 );
 	// fs_mount_hd only changes which files resolve after a filesystem rescan;
-	// the row writes the cvar, then we remount so it applies without a restart
+	// the row writes the cvar, then fs_reapply remounts and (if a single-player
+	// game is running) reloads it so the HD models swap in live without a manual
+	// save/load. At the menu or in multiplayer it just rescans for the next map.
 	SET_EVENT_MULTI( hdModels.onChanged,
 	{
 		(void)pSelf; (void)pExtra;
-		EngFuncs::ClientCmd( false, "fs_rescan\n" );
+		EngFuncs::ClientCmd( false, "fs_reapply\n" );
 	});
 
 	AddRow( TAB_INTERFACE, glyphStyle, ROW_H );
