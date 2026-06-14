@@ -195,6 +195,8 @@ private:
 	CContToggleRow levelStreaming, enableCheats;
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow detailTex, overbright, dynLights, shadows, lightExt, ripple, litWater, fovAdjust, conEnable;
+	CContToggleRow aoEnable;
+	CContButton aoCustomize;
 	CContSliderRow ambient, lodBias, conFontSize;
 	CContSpinRow decals, fpsMax, renderScale, conFont;
 	CContMsaaRow msaa;
@@ -480,6 +482,16 @@ void CMenuContConfig::_Init()
 	lightExt.szHint = "Entities take light from the world and brush models";
 	lightExt.Setup( "r_lighting_extended", 1 );
 	AddRow( TAB_ADVANCED, lightExt, ROW_H );
+
+	aoEnable.SetNameAndStatus( "Ambient Occlusion", NULL );
+	aoEnable.szHint = "Soft contact shadows under entities/props and baked corner shading on the world";
+	aoEnable.Setup( "r_ao", 1 );
+	AddRow( TAB_ADVANCED, aoEnable, ROW_H );
+
+	aoCustomize.SetNameAndStatus( "Customize Ambient Occlusion...", NULL );
+	aoCustomize.szHint = "Strength and detail for both the contact and the baked world AO";
+	aoCustomize.onReleased = UI_ContAO_Menu;
+	AddRow( TAB_ADVANCED, aoCustomize, ROW_H );
 
 	// --- GAMEPLAY tab (flashlight detail settings live on the Customize sub-page) ---
 	flProjected.SetNameAndStatus( "Improved Flashlight", NULL );
@@ -1347,3 +1359,141 @@ void CMenuContFlashlight::Draw()
 }
 
 ADD_MENU( menu_continuum_flashlight, CMenuContFlashlight, UI_ContFlashlight_Menu );
+
+//==========================================================================
+// Ambient Occlusion sub-page (the master on/off lives on the Advanced tab)
+//==========================================================================
+class CMenuContAO : public CMenuFramework
+{
+public:
+	CMenuContAO() : CMenuFramework( "CMenuContAO" ) { }
+
+	bool KeyDown( int key ) override;
+	void Draw() override;
+	void Hide() override;
+
+private:
+	void _Init() override;
+	void _VidInit() override;
+
+	CContSliderRow aoStrength, aoSize, aoSoft, aoHeight, aoWorld, aoWorldRange, aoWorldMax;
+	CContToggleRow aoSilhouette;
+};
+
+void CMenuContAO::_Init()
+{
+	aoStrength.SetNameAndStatus( "Contact Strength", NULL );
+	aoStrength.szHint = "Darkness of the soft shadow under entities and props";
+	aoStrength.Setup( "r_ao_strength", 0.0f, 1.0f, 0.05f, 0.5f, 2 );
+	AddItem( aoStrength );
+
+	aoSize.SetNameAndStatus( "Contact Footprint", NULL );
+	aoSize.szHint = "Size of the contact footprint relative to the model";
+	aoSize.Setup( "r_ao_size", 0.5f, 2.0f, 0.1f, 1.1f, 1 );
+	AddItem( aoSize );
+
+	aoSoft.SetNameAndStatus( "Contact Softness", NULL );
+	aoSoft.szHint = "Edge blur of the contact shadow, in units";
+	aoSoft.Setup( "r_ao_soft", 0, 12, 1, 2, 0 );
+	AddItem( aoSoft );
+
+	aoHeight.SetNameAndStatus( "Contact Height Falloff", NULL );
+	aoHeight.szHint = "How far up a model contributes - feet darker than raised arms";
+	aoHeight.Setup( "r_ao_height", 4, 64, 4, 16, 0 );
+	AddItem( aoHeight );
+
+	aoSilhouette.SetNameAndStatus( "Contact Silhouette", NULL );
+	aoSilhouette.szHint = "Shape the shadow to the model outline (off = a soft blob)";
+	aoSilhouette.Setup( "r_ao_silhouette", 1 );
+	AddItem( aoSilhouette );
+
+	aoWorld.SetNameAndStatus( "World Strength", NULL );
+	aoWorld.szHint = "Darkness of the baked corner/recess shading on the world";
+	aoWorld.Setup( "r_ao_world", 0.0f, 1.0f, 0.05f, 0.8f, 2 );
+	AddItem( aoWorld );
+
+	aoWorldRange.SetNameAndStatus( "World Range", NULL );
+	aoWorldRange.szHint = "How far world AO reaches into corners (re-bakes when you leave)";
+	aoWorldRange.Setup( "r_ao_world_dist", 16, 256, 8, 72, 0 );
+	AddItem( aoWorldRange );
+
+	aoWorldMax.SetNameAndStatus( "World Max Darkness", NULL );
+	aoWorldMax.szHint = "Cap on world AO so tight gaps don't go black";
+	aoWorldMax.Setup( "r_ao_world_max", 0.0f, 1.0f, 0.05f, 0.6f, 2 );
+	AddItem( aoWorldMax );
+}
+
+void CMenuContAO::_VidInit()
+{
+	VidInitFonts();
+
+	const int itemH = 50, gap = 4;
+	int y = 208;
+
+	CContButton *rows[] = { &aoStrength, &aoSize, &aoSoft, &aoHeight, &aoSilhouette, &aoWorld, &aoWorldRange, &aoWorldMax };
+	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
+		rows[i]->SetRect( MARGIN, y, ROW_W, itemH );
+}
+
+bool CMenuContAO::KeyDown( int key )
+{
+	if( UI::Key::IsEscape( key ))
+	{
+		Hide();
+		return true;
+	}
+
+	if( key == K_MOUSE1 )
+	{
+		const int legendKey = LegendClickKey();
+		if( legendKey )
+			return KeyDown( legendKey );
+	}
+
+	if( key == K_X_BUTTON || key == 'x' )
+	{
+		aoStrength.ResetDefault(); aoSize.ResetDefault(); aoSoft.ResetDefault(); aoHeight.ResetDefault();
+		aoSilhouette.ResetDefault(); aoWorld.ResetDefault(); aoWorldRange.ResetDefault(); aoWorldMax.ResetDefault();
+		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
+		return true;
+	}
+
+	return CMenuFramework::KeyDown( key );
+}
+
+void CMenuContAO::Hide()
+{
+	EngFuncs::ClientCmd( false, "host_writeconfig\n" );
+	// re-bake so World Range (a bake-time setting) takes effect; strength/clamp are
+	// already live. A no-op print if no map is loaded.
+	EngFuncs::ClientCmd( false, "r_ao_bake\n" );
+	CMenuFramework::Hide();
+}
+
+void CMenuContAO::Draw()
+{
+	static CImage noBackdrop;
+	DrawBackdrop( noBackdrop );
+
+	const int tx = MARGIN * uiStatic.scaleX;
+	const int ty = 64 * uiStatic.scaleY;
+	const int titleH = 30 * uiStatic.scaleY;
+	const int subH = 12 * uiStatic.scaleY;
+
+	UI_DrawString( fontTitle, tx, ty, ScreenWidth, titleH * 1.45f,
+		"AMBIENT OCCLUSION", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	UI_DrawString( fontSmall, tx, ty + titleH + 8 * uiStatic.scaleY, ScreenWidth, subH * 1.45f,
+		"CONTACT SHADOWS + BAKED WORLD AO - SHARED BY ALL GAMES", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+
+	CMenuFramework::Draw();
+
+	static const LegendEntry legend[] =
+	{
+		{ GLYPH_A, GLYPH_COUNT, "Change" },
+		{ GLYPH_B, GLYPH_COUNT, "Back" },
+		{ GLYPH_X, GLYPH_COUNT, "Restore Defaults" },
+	};
+	DrawLegend( legend, V_ARRAYSIZE( legend ));
+}
+
+ADD_MENU( menu_continuum_ao, CMenuContAO, UI_ContAO_Menu );
