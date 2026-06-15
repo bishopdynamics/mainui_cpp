@@ -195,7 +195,7 @@ private:
 	CContToggleRow levelStreaming, enableCheats;
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow detailTex, overbright, dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
-	CContToggleRow aoEnable;
+	CContToggleRow aoWorldEnable, aoEntityEnable;
 	CContButton aoCustomize;
 	CContToggleRow entShadows, entShadowsPlayer, entShadowsFl, entShadowsDebug;
 	CContSliderRow entShadowsMax, entShadowsStrength, entShadowsSize, entShadowsSoft;
@@ -483,10 +483,15 @@ void CMenuContConfig::_Init()
 	lightExt.Setup( "r_lighting_extended", 1 );
 	AddRow( TAB_ADVANCED, lightExt, ROW_H );
 
-	aoEnable.SetNameAndStatus( "Ambient Occlusion", NULL );
-	aoEnable.szHint = "Soft contact shadows under entities/props and baked corner shading on the world";
-	aoEnable.Setup( "r_ao", 1 );
-	AddRow( TAB_ADVANCED, aoEnable, ROW_H );
+	aoWorldEnable.SetNameAndStatus( "World AO", NULL );
+	aoWorldEnable.szHint = "Baked corner/recess shading on the world geometry";
+	aoWorldEnable.Setup( "r_ao_world", 1 );
+	AddRow( TAB_ADVANCED, aoWorldEnable, ROW_H );
+
+	aoEntityEnable.SetNameAndStatus( "Entity AO", NULL );
+	aoEntityEnable.szHint = "Soft contact shadow under monsters, props and the player";
+	aoEntityEnable.Setup( "r_ao", 1 );
+	AddRow( TAB_ADVANCED, aoEntityEnable, ROW_H );
 
 	aoCustomize.SetNameAndStatus( "Customize Ambient Occlusion...", NULL );
 	aoCustomize.szHint = "Strength and detail for both the contact and the baked world AO";
@@ -1424,7 +1429,7 @@ private:
 	void _VidInit() override;
 
 	CContSliderRow aoStrength, aoSize, aoSoft, aoHeight, aoWorld, aoWorldRange, aoWorldMax;
-	CContToggleRow aoSilhouette;
+	CContToggleRow aoSilhouette, aoEntityDbg, aoWorldDbg;
 };
 
 void CMenuContAO::_Init()
@@ -1454,9 +1459,14 @@ void CMenuContAO::_Init()
 	aoSilhouette.Setup( "r_ao_silhouette", 1 );
 	AddItem( aoSilhouette );
 
+	aoEntityDbg.SetNameAndStatus( "Entity Debug (Purple)", NULL );
+	aoEntityDbg.szHint = "Draw entity contact-AO footprints in solid purple";
+	aoEntityDbg.Setup( "r_ao_debug", 0 );
+	AddItem( aoEntityDbg );
+
 	aoWorld.SetNameAndStatus( "World Strength", NULL );
 	aoWorld.szHint = "Darkness of the baked corner/recess shading on the world";
-	aoWorld.Setup( "r_ao_world", 0.0f, 1.0f, 0.05f, 0.8f, 2 );
+	aoWorld.Setup( "r_ao_world_strength", 0.0f, 1.0f, 0.05f, 0.8f, 2 );
 	AddItem( aoWorld );
 
 	aoWorldRange.SetNameAndStatus( "World Range", NULL );
@@ -1468,16 +1478,21 @@ void CMenuContAO::_Init()
 	aoWorldMax.szHint = "Cap on world AO so tight gaps don't go black";
 	aoWorldMax.Setup( "r_ao_world_max", 0.0f, 1.0f, 0.05f, 0.6f, 2 );
 	AddItem( aoWorldMax );
+
+	aoWorldDbg.SetNameAndStatus( "World Debug (Pink)", NULL );
+	aoWorldDbg.szHint = "Show the baked world AO as hot pink in the lightmap";
+	aoWorldDbg.Setup( "r_ao_world_debug", 0 );
+	AddItem( aoWorldDbg );
 }
 
 void CMenuContAO::_VidInit()
 {
 	VidInitFonts();
 
-	const int itemH = 50, gap = 4;
+	const int itemH = 44, gap = 4;	// 10 rows: slightly shorter than other sub-pages so they all fit above the legend
 	int y = 208;
 
-	CContButton *rows[] = { &aoStrength, &aoSize, &aoSoft, &aoHeight, &aoSilhouette, &aoWorld, &aoWorldRange, &aoWorldMax };
+	CContButton *rows[] = { &aoStrength, &aoSize, &aoSoft, &aoHeight, &aoSilhouette, &aoEntityDbg, &aoWorld, &aoWorldRange, &aoWorldMax, &aoWorldDbg };
 	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
 		rows[i]->SetRect( MARGIN, y, ROW_W, itemH );
 }
@@ -1500,7 +1515,8 @@ bool CMenuContAO::KeyDown( int key )
 	if( key == K_X_BUTTON || key == 'x' )
 	{
 		aoStrength.ResetDefault(); aoSize.ResetDefault(); aoSoft.ResetDefault(); aoHeight.ResetDefault();
-		aoSilhouette.ResetDefault(); aoWorld.ResetDefault(); aoWorldRange.ResetDefault(); aoWorldMax.ResetDefault();
+		aoSilhouette.ResetDefault(); aoEntityDbg.ResetDefault(); aoWorld.ResetDefault(); aoWorldRange.ResetDefault();
+		aoWorldMax.ResetDefault(); aoWorldDbg.ResetDefault();
 		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
 		return true;
 	}
