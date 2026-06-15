@@ -1387,6 +1387,7 @@ public:
 
 	bool KeyDown( int key ) override;
 	void Draw() override;
+	void Show() override;
 	void Hide() override;
 
 private:
@@ -1395,6 +1396,7 @@ private:
 
 	CContSliderRow aoStrength, aoSize, aoSoft, aoHeight, aoWorld, aoWorldRange, aoWorldMax;
 	CContToggleRow aoEntityDbg, aoWorldDbg;
+	float m_bakeRangeOnShow;	// r_ao_world_dist when the page opened; re-bake on leave only if it changed
 };
 
 void CMenuContAO::_Init()
@@ -1484,12 +1486,19 @@ bool CMenuContAO::KeyDown( int key )
 	return CMenuFramework::KeyDown( key );
 }
 
+void CMenuContAO::Show()
+{
+	CMenuFramework::Show();
+	m_bakeRangeOnShow = EngFuncs::GetCvarFloat( "r_ao_world_dist" );	// baseline to detect a bake-time change
+}
+
 void CMenuContAO::Hide()
 {
 	EngFuncs::ClientCmd( false, "host_writeconfig\n" );
-	// re-bake so World Range (a bake-time setting) takes effect; strength/clamp are
-	// already live. A no-op print if no map is loaded.
-	EngFuncs::ClientCmd( false, "r_ao_bake_all\n" );
+	// World Range is the only bake-time setting (strength/clamp/debug are live), so only
+	// re-bake when it actually changed - otherwise leaving the page is free.
+	if( EngFuncs::GetCvarFloat( "r_ao_world_dist" ) != m_bakeRangeOnShow )
+		EngFuncs::ClientCmd( false, "r_ao_bake_all\n" );
 	CMenuFramework::Hide();
 }
 
