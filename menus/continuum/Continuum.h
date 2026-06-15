@@ -36,6 +36,7 @@ void UI_ContBindings_Menu( void );
 void UI_ContGamepadAxes_Menu( void );
 void UI_ContFlashlight_Menu( void );
 void UI_ContAO_Menu( void );
+void UI_ContEntShadows_Menu( void );
 void UI_ContMultiplayer_Menu( void );
 void UI_ContLoadGame_Menu( void );
 void UI_ContSaveGame_Menu( void );

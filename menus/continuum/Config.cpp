@@ -197,8 +197,8 @@ private:
 	CContToggleRow detailTex, overbright, dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
 	CContToggleRow aoWorldEnable, aoEntityEnable;
 	CContButton aoCustomize;
-	CContToggleRow entShadows, entShadowsPlayer, entShadowsFl, entShadowsDebug;
-	CContSliderRow entShadowsMax, entShadowsStrength, entShadowsSize, entShadowsSoft;
+	CContToggleRow entShadows;
+	CContButton entShadowsCustomize;
 	CContSliderRow ambient, lodBias, conFontSize;
 	CContSpinRow decals, fpsMax, renderScale, conFont;
 	CContMsaaRow msaa;
@@ -506,40 +506,10 @@ void CMenuContConfig::_Init()
 	entShadows.Setup( "r_entity_shadows", 0 );
 	AddRow( TAB_ADVANCED, entShadows, ROW_H );
 
-	entShadowsMax.SetNameAndStatus( "Max Casters", NULL );
-	entShadowsMax.szHint = "How many of the nearest entities cast a shadow; lower = faster";
-	entShadowsMax.Setup( "r_entity_shadows_max", 2, 50, 1, 10, 0 );
-	AddRow( TAB_ADVANCED, entShadowsMax, ROW_H );
-
-	entShadowsStrength.SetNameAndStatus( "Shadow Strength", NULL );
-	entShadowsStrength.szHint = "How dark the entity shadows are (0 = none, 1 = black)";
-	entShadowsStrength.Setup( "r_entity_shadows_strength", 0.0f, 1.0f, 0.05f, 0.4f, 2 );
-	AddRow( TAB_ADVANCED, entShadowsStrength, ROW_H );
-
-	entShadowsSize.SetNameAndStatus( "Shadow Resolution", NULL );
-	entShadowsSize.szHint = "Coverage-map size in texels; higher = finer footprint, more CPU";
-	entShadowsSize.Setup( "r_entity_shadows_size", 64, 256, 32, 256, 0 );
-	AddRow( TAB_ADVANCED, entShadowsSize, ROW_H );
-
-	entShadowsSoft.SetNameAndStatus( "Shadow Softness", NULL );
-	entShadowsSoft.szHint = "Soften the shadow edge (0 = hard); box-blur radius in coverage texels";
-	entShadowsSoft.Setup( "r_entity_shadows_softness", 0, 16, 1, 8, 0 );
-	AddRow( TAB_ADVANCED, entShadowsSoft, ROW_H );
-
-	entShadowsPlayer.SetNameAndStatus( "Player Casts Shadow", NULL );
-	entShadowsPlayer.szHint = "The player (and other players) cast entity shadows too";
-	entShadowsPlayer.Setup( "r_entity_shadows_player", 1 );
-	AddRow( TAB_ADVANCED, entShadowsPlayer, ROW_H );
-
-	entShadowsFl.SetNameAndStatus( "Flashlight Cancels It", NULL );
-	entShadowsFl.szHint = "The flashlight beam overpowers entity shadows where it shines";
-	entShadowsFl.Setup( "r_entity_shadows_flashlight", 1 );
-	AddRow( TAB_ADVANCED, entShadowsFl, ROW_H );
-
-	entShadowsDebug.SetNameAndStatus( "Debug (Yellow)", NULL );
-	entShadowsDebug.szHint = "Draw the shadow footprints in bright yellow to see where they land";
-	entShadowsDebug.Setup( "r_entity_shadows_debug", 0 );
-	AddRow( TAB_ADVANCED, entShadowsDebug, ROW_H );
+	entShadowsCustomize.SetNameAndStatus( "Customize Entity Shadows...", NULL );
+	entShadowsCustomize.szHint = "Strength, softness, resolution, caster cap and more";
+	entShadowsCustomize.onReleased = UI_ContEntShadows_Menu;
+	AddRow( TAB_ADVANCED, entShadowsCustomize, ROW_H );
 
 	// --- GAMEPLAY tab (flashlight detail settings live on the Customize sub-page) ---
 	alwaysRun.SetNameAndStatus( "Always Run", NULL );
@@ -1560,3 +1530,134 @@ void CMenuContAO::Draw()
 }
 
 ADD_MENU( menu_continuum_ao, CMenuContAO, UI_ContAO_Menu );
+
+//-----------------------------------------------------------------------------
+// Entity Shadows customize sub-page (opened from the Advanced tab; the master
+// "Entity Shadows" toggle stays on the Advanced tab itself)
+//-----------------------------------------------------------------------------
+class CMenuContEntShadows : public CMenuFramework
+{
+public:
+	CMenuContEntShadows() : CMenuFramework( "CMenuContEntShadows" ) { }
+
+	bool KeyDown( int key ) override;
+	void Draw() override;
+	void Hide() override;
+
+private:
+	void _Init() override;
+	void _VidInit() override;
+
+	CContSliderRow esStrength, esSoft, esSize, esMax;
+	CContToggleRow esPlayer, esFl, esDbg;
+};
+
+void CMenuContEntShadows::_Init()
+{
+	esStrength.SetNameAndStatus( "Shadow Strength", NULL );
+	esStrength.szHint = "How dark the entity shadows are (0 = none, 1 = black)";
+	esStrength.Setup( "r_entity_shadows_strength", 0.0f, 1.0f, 0.05f, 0.4f, 2 );
+	AddItem( esStrength );
+
+	esSoft.SetNameAndStatus( "Shadow Softness", NULL );
+	esSoft.szHint = "Soften the shadow edge (0 = hard); box-blur radius in coverage texels";
+	esSoft.Setup( "r_entity_shadows_softness", 0, 16, 1, 8, 0 );
+	AddItem( esSoft );
+
+	esSize.SetNameAndStatus( "Shadow Resolution", NULL );
+	esSize.szHint = "Coverage-map size in texels; higher = finer footprint, more CPU";
+	esSize.Setup( "r_entity_shadows_size", 64, 256, 32, 256, 0 );
+	AddItem( esSize );
+
+	esMax.SetNameAndStatus( "Max Casters", NULL );
+	esMax.szHint = "How many of the nearest entities cast a shadow; lower = faster";
+	esMax.Setup( "r_entity_shadows_max", 2, 50, 1, 10, 0 );
+	AddItem( esMax );
+
+	esPlayer.SetNameAndStatus( "Player Casts Shadow", NULL );
+	esPlayer.szHint = "The player (and other players) cast entity shadows too";
+	esPlayer.Setup( "r_entity_shadows_player", 1 );
+	AddItem( esPlayer );
+
+	esFl.SetNameAndStatus( "Flashlight Cancels It", NULL );
+	esFl.szHint = "The flashlight beam overpowers entity shadows where it shines";
+	esFl.Setup( "r_entity_shadows_flashlight", 1 );
+	AddItem( esFl );
+
+	esDbg.SetNameAndStatus( "Debug (Yellow)", NULL );
+	esDbg.szHint = "Draw the shadow footprints in bright yellow to see where they land";
+	esDbg.Setup( "r_entity_shadows_debug", 0 );
+	AddItem( esDbg );
+}
+
+void CMenuContEntShadows::_VidInit()
+{
+	VidInitFonts();
+
+	const int itemH = 50, gap = 4;
+	int y = 208;
+
+	CContButton *rows[] = { &esStrength, &esSoft, &esSize, &esMax, &esPlayer, &esFl, &esDbg };
+	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
+		rows[i]->SetRect( MARGIN, y, ROW_W, itemH );
+}
+
+bool CMenuContEntShadows::KeyDown( int key )
+{
+	if( UI::Key::IsEscape( key ))
+	{
+		Hide();
+		return true;
+	}
+
+	if( key == K_MOUSE1 )
+	{
+		const int legendKey = LegendClickKey();
+		if( legendKey )
+			return KeyDown( legendKey );
+	}
+
+	if( key == K_X_BUTTON || key == 'x' )
+	{
+		esStrength.ResetDefault(); esSoft.ResetDefault(); esSize.ResetDefault(); esMax.ResetDefault();
+		esPlayer.ResetDefault(); esFl.ResetDefault(); esDbg.ResetDefault();
+		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
+		return true;
+	}
+
+	return CMenuFramework::KeyDown( key );
+}
+
+void CMenuContEntShadows::Hide()
+{
+	EngFuncs::ClientCmd( false, "host_writeconfig\n" );
+	CMenuFramework::Hide();
+}
+
+void CMenuContEntShadows::Draw()
+{
+	static CImage noBackdrop;
+	DrawBackdrop( noBackdrop );
+
+	const int tx = MARGIN * uiStatic.scaleX;
+	const int ty = 64 * uiStatic.scaleY;
+	const int titleH = 30 * uiStatic.scaleY;
+	const int subH = 12 * uiStatic.scaleY;
+
+	UI_DrawString( fontTitle, tx, ty, ScreenWidth, titleH * 1.45f,
+		"ENTITY SHADOWS", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	UI_DrawString( fontSmall, tx, ty + titleH + 8 * uiStatic.scaleY, ScreenWidth, subH * 1.45f,
+		"SOFT DYNAMIC SHADOWS CAST BY MOVING ENTITIES (EXPERIMENTAL)", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+
+	CMenuFramework::Draw();
+
+	static const LegendEntry legend[] =
+	{
+		{ GLYPH_A, GLYPH_COUNT, "Change" },
+		{ GLYPH_B, GLYPH_COUNT, "Back" },
+		{ GLYPH_X, GLYPH_COUNT, "Restore Defaults" },
+	};
+	DrawLegend( legend, V_ARRAYSIZE( legend ));
+}
+
+ADD_MENU( menu_continuum_entshadows, CMenuContEntShadows, UI_ContEntShadows_Menu );
