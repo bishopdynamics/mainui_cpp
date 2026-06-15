@@ -135,7 +135,11 @@ private:
 		int height;
 	};
 
-	enum { MAX_ENTRIES = 64 };
+	// Total rows across ALL tabs (m_nEntries is global, not per-tab). AddRow
+	// silently drops anything past this cap — and a dropped row is never even
+	// AddItem'd, so it's fully invisible. Keep comfortably above the real count
+	// (~69 today) so late-added rows (e.g. the CONSOLE section) don't vanish.
+	enum { MAX_ENTRIES = 96 };
 	entry_t m_Entries[MAX_ENTRIES];
 	int m_nEntries = 0;
 	int m_iTabHeight[TAB_COUNT] = {};
@@ -212,7 +216,13 @@ private:
 void CMenuContConfig::AddRow( int tab, CContButton &item, int logicalH )
 {
 	if( m_nEntries >= MAX_ENTRIES )
+	{
+		// Overflow is otherwise silent: the row is never AddItem'd, so it just
+		// vanishes from the menu with no error. Shout so the next person who
+		// adds a setting past the cap knows to raise MAX_ENTRIES.
+		Con_Printf( "^1CMenuContConfig::AddRow: MAX_ENTRIES (%d) exceeded — row dropped (tab %d). Raise MAX_ENTRIES.^7\n", (int)MAX_ENTRIES, tab );
 		return;
+	}
 
 	entry_t &e = m_Entries[m_nEntries++];
 	e.item = &item;
@@ -365,7 +375,7 @@ void CMenuContConfig::_Init()
 	showFps.Setup( "cl_showfps", 0 );
 
 	showMapName.SetNameAndStatus( "Show Map Name", NULL );
-	showMapName.Setup( "scr_drawmapname", 1 );
+	showMapName.Setup( "scr_drawmapname", 0 );
 
 	crosshairToggle.SetNameAndStatus( "Crosshair", NULL );
 	crosshairToggle.Setup( "crosshair", 1 );
@@ -405,6 +415,26 @@ void CMenuContConfig::_Init()
 	if( HdContentPresent( ))
 		AddRow( TAB_INTERFACE, hdModels, ROW_H );
 	AddRow( TAB_INTERFACE, classicUi, ROW_H );
+
+	hdrConsole.SetNameAndStatus( "CONSOLE", NULL );
+	AddRow( TAB_INTERFACE, hdrConsole, HEADER_H );
+
+	conEnable.SetNameAndStatus( "Enable Console", NULL );
+	conEnable.szHint = "Open with the tilde key while playing";
+	conEnable.Setup( "con_enable", 0 );
+	AddRow( TAB_INTERFACE, conEnable, ROW_H );
+
+	static const char *conFontLabels[] = { "Classic", "Modern" };
+	static const float conFontValues[] = { 0, 1 };
+	conFont.SetNameAndStatus( "Console Font", NULL );
+	conFont.szHint = "Modern renders gfx/fonts/console.ttf - swap that file for any font you like";
+	conFont.Setup( "con_ttffont", conFontLabels, conFontValues, 2, 1 );
+	AddRow( TAB_INTERFACE, conFont, ROW_H );
+
+	conFontSize.SetNameAndStatus( "Console Font Size", NULL );
+	conFontSize.szHint = "Applies immediately";
+	conFontSize.Setup( "con_fontscale", 1.0f, 2.5f, 0.1f, 1.0f, 1 );
+	AddRow( TAB_INTERFACE, conFontSize, ROW_H );
 
 	// ---- advanced ----
 	hdrStream.SetNameAndStatus( "STREAMING", NULL );
@@ -583,25 +613,8 @@ void CMenuContConfig::_Init()
 	lodBias.Setup( "gl_texture_lodbias", -2.0f, 0.0f, 0.25f, 0.0f, 2 );
 	AddRow( TAB_ADVANCED, lodBias, ROW_H );
 
-	hdrConsole.SetNameAndStatus( "CONSOLE", NULL );
-	AddRow( TAB_ADVANCED, hdrConsole, HEADER_H );
-
-	conEnable.SetNameAndStatus( "Enable Console", NULL );
-	conEnable.szHint = "Open with the tilde key while playing";
-	conEnable.Setup( "con_enable", 0 );
-	AddRow( TAB_ADVANCED, conEnable, ROW_H );
-
-	static const char *conFontLabels[] = { "Classic", "Modern" };
-	static const float conFontValues[] = { 0, 1 };
-	conFont.SetNameAndStatus( "Console Font", NULL );
-	conFont.szHint = "Modern renders gfx/fonts/console.ttf - swap that file for any font you like";
-	conFont.Setup( "con_ttffont", conFontLabels, conFontValues, 2, 1 );
-	AddRow( TAB_ADVANCED, conFont, ROW_H );
-
-	conFontSize.SetNameAndStatus( "Console Font Size", NULL );
-	conFontSize.szHint = "Applies immediately";
-	conFontSize.Setup( "con_fontscale", 1.0f, 2.5f, 0.1f, 1.0f, 1 );
-	AddRow( TAB_ADVANCED, conFontSize, ROW_H );
+	// CONSOLE section (Enable Console / Console Font / Console Font Size) lives
+	// on the Interface tab — see the TAB_INTERFACE block in _Init above.
 
 	SetTab( TAB_VIDEO );
 }
