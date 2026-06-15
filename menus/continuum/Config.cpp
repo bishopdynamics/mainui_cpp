@@ -561,7 +561,7 @@ void CMenuContConfig::_Init()
 	msaa.SetNameAndStatus( "Anti-Aliasing", NULL );
 	msaa.szHint = "Multisampling - applied on next launch";
 	msaa.szBadge = "RESTART";
-	msaa.Setup( "gl_msaa_samples", msaaLabels, msaaValues, 4, 0 );
+	msaa.Setup( "gl_msaa_samples", msaaLabels, msaaValues, 4, 1 );
 	AddRow( TAB_ADVANCED, msaa, ROW_H );
 
 	fovAdjust.SetNameAndStatus( "FOV Correction", NULL );
