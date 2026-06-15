@@ -194,7 +194,7 @@ private:
 	CContHeader hdrStream, hdrTex, hdrLight, hdrShadows, hdrFx, hdrPerf, hdrConsole;
 	CContToggleRow levelStreaming, enableCheats;
 	CContSpinRow aniso, texFilter, lmFilter;
-	CContToggleRow detailTex, overbright, dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
+	CContToggleRow detailTex, dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
 	CContToggleRow aoWorldEnable, aoEntityEnable;
 	CContButton aoCustomize;
 	CContToggleRow entShadows;
@@ -432,7 +432,7 @@ void CMenuContConfig::_Init()
 		"Toggle cheats like god mode are re-applied automatically after every "
 		"seamless level change, so they don't silently switch off mid-game.";
 	enableCheats.Setup( "sv_cheats", 0 );
-	AddRow( TAB_ADVANCED, enableCheats, ROW_H );
+	AddRow( TAB_GAMEPLAY, enableCheats, ROW_H );
 
 	hdrTex.SetNameAndStatus( "TEXTURES", NULL );
 	AddRow( TAB_ADVANCED, hdrTex, HEADER_H );
@@ -462,11 +462,6 @@ void CMenuContConfig::_Init()
 
 	hdrLight.SetNameAndStatus( "LIGHTING", NULL );
 	AddRow( TAB_ADVANCED, hdrLight, HEADER_H );
-
-	overbright.SetNameAndStatus( "Overbright Lighting", NULL );
-	overbright.szHint = "Matches the original GoldSrc look";
-	overbright.Setup( "gl_overbright", 1 );
-	AddRow( TAB_ADVANCED, overbright, ROW_H );
 
 	dynLights.SetNameAndStatus( "Dynamic Lights", NULL );
 	dynLights.szHint = "Muzzle flashes and explosions light the world";
@@ -1399,7 +1394,7 @@ private:
 	void _VidInit() override;
 
 	CContSliderRow aoStrength, aoSize, aoSoft, aoHeight, aoWorld, aoWorldRange, aoWorldMax;
-	CContToggleRow aoSilhouette, aoEntityDbg, aoWorldDbg;
+	CContToggleRow aoEntityDbg, aoWorldDbg;
 };
 
 void CMenuContAO::_Init()
@@ -1424,11 +1419,6 @@ void CMenuContAO::_Init()
 	aoHeight.Setup( "r_ao_height", 4, 64, 4, 16, 0 );
 	AddItem( aoHeight );
 
-	aoSilhouette.SetNameAndStatus( "Contact Silhouette", NULL );
-	aoSilhouette.szHint = "Shape the shadow to the model outline (off = a soft blob)";
-	aoSilhouette.Setup( "r_ao_silhouette", 1 );
-	AddItem( aoSilhouette );
-
 	aoEntityDbg.SetNameAndStatus( "Entity Debug (Purple)", NULL );
 	aoEntityDbg.szHint = "Draw entity contact-AO footprints in solid purple";
 	aoEntityDbg.Setup( "r_ao_debug", 0 );
@@ -1436,12 +1426,12 @@ void CMenuContAO::_Init()
 
 	aoWorld.SetNameAndStatus( "World Strength", NULL );
 	aoWorld.szHint = "Darkness of the baked corner/recess shading on the world";
-	aoWorld.Setup( "r_ao_world_strength", 0.0f, 1.0f, 0.05f, 0.8f, 2 );
+	aoWorld.Setup( "r_ao_world_strength", 0.0f, 1.0f, 0.05f, 0.6f, 2 );
 	AddItem( aoWorld );
 
 	aoWorldRange.SetNameAndStatus( "World Range", NULL );
 	aoWorldRange.szHint = "How far world AO reaches into corners (re-bakes when you leave)";
-	aoWorldRange.Setup( "r_ao_world_dist", 16, 256, 8, 72, 0 );
+	aoWorldRange.Setup( "r_ao_world_dist", 16, 256, 8, 64, 0 );
 	AddItem( aoWorldRange );
 
 	aoWorldMax.SetNameAndStatus( "World Max Darkness", NULL );
@@ -1462,7 +1452,7 @@ void CMenuContAO::_VidInit()
 	const int itemH = 44, gap = 4;	// 10 rows: slightly shorter than other sub-pages so they all fit above the legend
 	int y = 208;
 
-	CContButton *rows[] = { &aoStrength, &aoSize, &aoSoft, &aoHeight, &aoSilhouette, &aoEntityDbg, &aoWorld, &aoWorldRange, &aoWorldMax, &aoWorldDbg };
+	CContButton *rows[] = { &aoStrength, &aoSize, &aoSoft, &aoHeight, &aoEntityDbg, &aoWorld, &aoWorldRange, &aoWorldMax, &aoWorldDbg };
 	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
 		rows[i]->SetRect( MARGIN, y, ROW_W, itemH );
 }
@@ -1485,7 +1475,7 @@ bool CMenuContAO::KeyDown( int key )
 	if( key == K_X_BUTTON || key == 'x' )
 	{
 		aoStrength.ResetDefault(); aoSize.ResetDefault(); aoSoft.ResetDefault(); aoHeight.ResetDefault();
-		aoSilhouette.ResetDefault(); aoEntityDbg.ResetDefault(); aoWorld.ResetDefault(); aoWorldRange.ResetDefault();
+		aoEntityDbg.ResetDefault(); aoWorld.ResetDefault(); aoWorldRange.ResetDefault();
 		aoWorldMax.ResetDefault(); aoWorldDbg.ResetDefault();
 		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
 		return true;
@@ -1499,7 +1489,7 @@ void CMenuContAO::Hide()
 	EngFuncs::ClientCmd( false, "host_writeconfig\n" );
 	// re-bake so World Range (a bake-time setting) takes effect; strength/clamp are
 	// already live. A no-op print if no map is loaded.
-	EngFuncs::ClientCmd( false, "r_ao_bake\n" );
+	EngFuncs::ClientCmd( false, "r_ao_bake_all\n" );
 	CMenuFramework::Hide();
 }
 
@@ -1516,7 +1506,7 @@ void CMenuContAO::Draw()
 	UI_DrawString( fontTitle, tx, ty, ScreenWidth, titleH * 1.45f,
 		"AMBIENT OCCLUSION", clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 	UI_DrawString( fontSmall, tx, ty + titleH + 8 * uiStatic.scaleY, ScreenWidth, subH * 1.45f,
-		"CONTACT SHADOWS + BAKED WORLD AO - SHARED BY ALL GAMES", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+		"CONTACT SHADOWS + BAKED WORLD AO", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	CMenuFramework::Draw();
 
@@ -1549,7 +1539,7 @@ private:
 	void _VidInit() override;
 
 	CContSliderRow esStrength, esSoft, esSize, esMax;
-	CContToggleRow esPlayer, esFl, esDbg;
+	CContToggleRow esPlayer, esDbg;
 };
 
 void CMenuContEntShadows::_Init()
@@ -1561,28 +1551,23 @@ void CMenuContEntShadows::_Init()
 
 	esSoft.SetNameAndStatus( "Shadow Softness", NULL );
 	esSoft.szHint = "Soften the shadow edge (0 = hard); box-blur radius in coverage texels";
-	esSoft.Setup( "r_entity_shadows_softness", 0, 16, 1, 8, 0 );
+	esSoft.Setup( "r_entity_shadows_softness", 0, 16, 1, 6, 0 );
 	AddItem( esSoft );
 
 	esSize.SetNameAndStatus( "Shadow Resolution", NULL );
 	esSize.szHint = "Coverage-map size in texels; higher = finer footprint, more CPU";
-	esSize.Setup( "r_entity_shadows_size", 64, 256, 32, 256, 0 );
+	esSize.Setup( "r_entity_shadows_size", 64, 1024, 64, 256, 0 );
 	AddItem( esSize );
 
 	esMax.SetNameAndStatus( "Max Casters", NULL );
 	esMax.szHint = "How many of the nearest entities cast a shadow; lower = faster";
-	esMax.Setup( "r_entity_shadows_max", 2, 50, 1, 10, 0 );
+	esMax.Setup( "r_entity_shadows_max", 2, 50, 1, 16, 0 );
 	AddItem( esMax );
 
 	esPlayer.SetNameAndStatus( "Player Casts Shadow", NULL );
-	esPlayer.szHint = "The player (and other players) cast entity shadows too";
+	esPlayer.szHint = "Other players, and your own body in third-person, cast shadows (no body in first-person)";
 	esPlayer.Setup( "r_entity_shadows_player", 1 );
 	AddItem( esPlayer );
-
-	esFl.SetNameAndStatus( "Flashlight Cancels It", NULL );
-	esFl.szHint = "The flashlight beam overpowers entity shadows where it shines";
-	esFl.Setup( "r_entity_shadows_flashlight", 1 );
-	AddItem( esFl );
 
 	esDbg.SetNameAndStatus( "Debug (Yellow)", NULL );
 	esDbg.szHint = "Draw the shadow footprints in bright yellow to see where they land";
@@ -1597,7 +1582,7 @@ void CMenuContEntShadows::_VidInit()
 	const int itemH = 50, gap = 4;
 	int y = 208;
 
-	CContButton *rows[] = { &esStrength, &esSoft, &esSize, &esMax, &esPlayer, &esFl, &esDbg };
+	CContButton *rows[] = { &esStrength, &esSoft, &esSize, &esMax, &esPlayer, &esDbg };
 	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
 		rows[i]->SetRect( MARGIN, y, ROW_W, itemH );
 }
@@ -1620,7 +1605,7 @@ bool CMenuContEntShadows::KeyDown( int key )
 	if( key == K_X_BUTTON || key == 'x' )
 	{
 		esStrength.ResetDefault(); esSoft.ResetDefault(); esSize.ResetDefault(); esMax.ResetDefault();
-		esPlayer.ResetDefault(); esFl.ResetDefault(); esDbg.ResetDefault();
+		esPlayer.ResetDefault(); esDbg.ResetDefault();
 		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
 		return true;
 	}
