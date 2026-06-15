@@ -191,12 +191,14 @@ private:
 	CContToggleRow showFps, showMapName, crosshairToggle, classicUi, hdModels;
 
 	// advanced
-	CContHeader hdrStream, hdrTex, hdrLight, hdrFx, hdrPerf, hdrConsole;
+	CContHeader hdrStream, hdrTex, hdrLight, hdrShadows, hdrFx, hdrPerf, hdrConsole;
 	CContToggleRow levelStreaming, enableCheats;
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow detailTex, overbright, dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
 	CContToggleRow aoEnable;
 	CContButton aoCustomize;
+	CContToggleRow entShadows, entShadowsPlayer, entShadowsFl, entShadowsDebug;
+	CContSliderRow entShadowsMax, entShadowsStrength, entShadowsSize, entShadowsSoft;
 	CContSliderRow ambient, lodBias, conFontSize;
 	CContSpinRow decals, fpsMax, renderScale, conFont;
 	CContMsaaRow msaa;
@@ -490,6 +492,49 @@ void CMenuContConfig::_Init()
 	aoCustomize.szHint = "Strength and detail for both the contact and the baked world AO";
 	aoCustomize.onReleased = UI_ContAO_Menu;
 	AddRow( TAB_ADVANCED, aoCustomize, ROW_H );
+
+	hdrShadows.SetNameAndStatus( "DYNAMIC SHADOWS", NULL );
+	AddRow( TAB_ADVANCED, hdrShadows, HEADER_H );
+
+	entShadows.SetNameAndStatus( "Entity Shadows", NULL );
+	entShadows.szHint = "Monsters, props and the player cast real shadows onto the world (experimental)";
+	entShadows.Setup( "r_entity_shadows", 0 );
+	AddRow( TAB_ADVANCED, entShadows, ROW_H );
+
+	entShadowsMax.SetNameAndStatus( "Max Casters", NULL );
+	entShadowsMax.szHint = "How many of the nearest entities cast a shadow; lower = faster";
+	entShadowsMax.Setup( "r_entity_shadows_max", 2, 50, 1, 10, 0 );
+	AddRow( TAB_ADVANCED, entShadowsMax, ROW_H );
+
+	entShadowsStrength.SetNameAndStatus( "Shadow Strength", NULL );
+	entShadowsStrength.szHint = "How dark the entity shadows are (0 = none, 1 = black)";
+	entShadowsStrength.Setup( "r_entity_shadows_strength", 0.0f, 1.0f, 0.05f, 0.4f, 2 );
+	AddRow( TAB_ADVANCED, entShadowsStrength, ROW_H );
+
+	entShadowsSize.SetNameAndStatus( "Shadow Resolution", NULL );
+	entShadowsSize.szHint = "Coverage-map size in texels; higher = finer footprint, more CPU";
+	entShadowsSize.Setup( "r_entity_shadows_size", 64, 256, 32, 256, 0 );
+	AddRow( TAB_ADVANCED, entShadowsSize, ROW_H );
+
+	entShadowsSoft.SetNameAndStatus( "Shadow Softness", NULL );
+	entShadowsSoft.szHint = "Soften the shadow edge (0 = hard); box-blur radius in coverage texels";
+	entShadowsSoft.Setup( "r_entity_shadows_softness", 0, 16, 1, 8, 0 );
+	AddRow( TAB_ADVANCED, entShadowsSoft, ROW_H );
+
+	entShadowsPlayer.SetNameAndStatus( "Player Casts Shadow", NULL );
+	entShadowsPlayer.szHint = "The player (and other players) cast entity shadows too";
+	entShadowsPlayer.Setup( "r_entity_shadows_player", 1 );
+	AddRow( TAB_ADVANCED, entShadowsPlayer, ROW_H );
+
+	entShadowsFl.SetNameAndStatus( "Flashlight Cancels It", NULL );
+	entShadowsFl.szHint = "The flashlight beam overpowers entity shadows where it shines";
+	entShadowsFl.Setup( "r_entity_shadows_flashlight", 1 );
+	AddRow( TAB_ADVANCED, entShadowsFl, ROW_H );
+
+	entShadowsDebug.SetNameAndStatus( "Debug (Yellow)", NULL );
+	entShadowsDebug.szHint = "Draw the shadow footprints in bright yellow to see where they land";
+	entShadowsDebug.Setup( "r_entity_shadows_debug", 0 );
+	AddRow( TAB_ADVANCED, entShadowsDebug, ROW_H );
 
 	// --- GAMEPLAY tab (flashlight detail settings live on the Customize sub-page) ---
 	alwaysRun.SetNameAndStatus( "Always Run", NULL );
