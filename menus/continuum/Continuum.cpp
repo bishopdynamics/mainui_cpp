@@ -73,9 +73,23 @@ void DrawBackdrop( CImage &pic )
 {
 	if( pic.IsValid( ))
 	{
-		// asset is pre-blurred and pre-darkened; cover-fill distortion of a
-		// blur is invisible, so just stretch
-		UI_DrawPic( 0, 0, ScreenWidth, ScreenHeight, 0xFFFFFFFF, pic );
+		// the game art is its native aspect (often 4:3), so cover-fill it: scale to fill
+		// the screen keeping aspect and crop the overflow, rather than stretch-distorting
+		const int pw = EngFuncs::PIC_Width( pic.Handle() );
+		const int ph = EngFuncs::PIC_Height( pic.Handle() );
+		int dw = ScreenWidth, dh = ScreenHeight;
+
+		if( pw > 0 && ph > 0 )
+		{
+			if( pw * ScreenHeight < ph * ScreenWidth )
+				dh = (int)( (float)ScreenWidth * ph / pw ); // fill width, crop top/bottom
+			else
+				dw = (int)( (float)ScreenHeight * pw / ph ); // fill height, crop sides
+		}
+
+		// top-align: keep the top of the image at the top of the screen (some games put
+		// the title or other info up there), cropping the overflow off the bottom
+		UI_DrawPic(( ScreenWidth - dw ) / 2, 0, dw, dh, 0xFFFFFFFF, pic );
 		// deepen the bottom so the legend bar reads
 		UI_FillRect( 0, ScreenHeight * 0.86f, ScreenWidth, ScreenHeight * 0.14f + 1, 0x46000000 );
 	}
@@ -83,6 +97,42 @@ void DrawBackdrop( CImage &pic )
 	{
 		UI_FillRect( 0, 0, ScreenWidth, ScreenHeight, clrBg );
 	}
+}
+
+void DrawSeethruBackdrop( CImage &pic )
+{
+	if( CL_IsActive( ))
+	{
+		// the engine skips rendering the world behind a visible menu unless ui_renderworld
+		// is set (defaults off to save GPU when the menu is opaque). We're drawing a
+		// see-through backdrop, so turn it on - otherwise there's nothing behind our panel
+		// and the screen just shows dark. No full-screen fill: the live game shows through.
+		if( EngFuncs::GetCvarFloat( "ui_renderworld" ) == 0.0f )
+			EngFuncs::CvarSetValue( "ui_renderworld", 1.0f );
+	}
+	else
+	{
+		DrawBackdrop( pic ); // game-art (or flat) full-screen backdrop
+	}
+}
+
+void DrawContentPanel( int x, int y, int w, int h )
+{
+	const int px = x * uiStatic.scaleX;
+	const int py = y * uiStatic.scaleY;
+	const int pw = w * uiStatic.scaleX;
+	const int ph = h * uiStatic.scaleY;
+
+	UI_FillRect( px, py, pw, ph, clrPanel );
+	UI_DrawRectangleExt( px, py, pw, ph, 0x28FFFFFF, 1 );
+}
+
+void DrawScreenBackdrop( CImage &pic, int colLeft, int colWidth )
+{
+	// see-through (or art) backdrop, plus a tinted panel behind the content column so the
+	// rows read against either the live game or the art, with the backdrop showing around it
+	DrawSeethruBackdrop( pic );
+	DrawContentPanel( colLeft, 44, colWidth, 768 - LEGEND_H - 14 - 44 );
 }
 
 static int g_iRowClipTop, g_iRowClipBottom;
@@ -351,12 +401,35 @@ static bool LoadGamePic( const char *folder, const char *suffix, CImage &pic )
 
 bool GameArt( const char *folder, CImage &pic )
 {
-	return LoadGamePic( folder, "", pic );
+	// the card thumbnail uses the same image as the backdrop, with the same
+	// default-bg fallback so games without art still show something in the picker
+	return GameBackdrop( folder, pic );
 }
 
 bool GameBackdrop( const char *folder, CImage &pic )
 {
-	return LoadGamePic( folder, "_bd", pic );
+	// the game's own composed art (un-blurred; the "_bd" assets are retired), or the
+	// shared default when it has none - e.g. a game whose splash can't be extracted, or
+	// one that ships no menu background at all
+	if( LoadGamePic( folder, "", pic ))
+		return true;
+
+	pic.Load( "gfx/shell/continuum/default-bg.png" );
+	return pic.IsValid();
+}
+
+CImage &CurrentGameBackdrop( void )
+{
+	static CImage pic;
+	static char loaded[64] = { 0 };
+	const char *folder = gMenu.m_gameinfo.gamefolder;
+
+	if( strcmp( loaded, folder ) != 0 )
+	{
+		GameBackdrop( folder, pic ); // the game's art, or the shared default-bg fallback
+		Q_strncpy( loaded, folder, sizeof( loaded ));
+	}
+	return pic;
 }
 
 /*

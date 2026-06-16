@@ -258,7 +258,8 @@ bool CMenuContCharacter::KeyDown( int key )
 void CMenuContCharacter::Draw()
 {
 	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	// panel behind the rows column only; the model preview on the right keeps its own bg
+	DrawScreenBackdrop( noBackdrop, MARGIN - 30, ROW_W + 40 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;

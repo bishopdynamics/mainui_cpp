@@ -965,8 +965,9 @@ void CMenuContConfig::Hide()
 
 void CMenuContConfig::Draw()
 {
-	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	// in-game: tint the rows' column, show the game behind the rest; out-of-game: the
+	// current game's backdrop, like the other menu screens (was a flat fill before)
+	DrawScreenBackdrop( CurrentGameBackdrop(), MARGIN - 30, ROW_W + 46 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;
@@ -1271,8 +1272,9 @@ void CMenuContGamepadAxes::Hide()
 
 void CMenuContGamepadAxes::Draw()
 {
-	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	// in-game: tint the rows' column, show the game behind the rest; out-of-game: the
+	// current game's backdrop, like the other menu screens (was a flat fill before)
+	DrawScreenBackdrop( CurrentGameBackdrop(), MARGIN - 30, ROW_W + 46 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;
@@ -1412,8 +1414,9 @@ void CMenuContFlashlight::Hide()
 
 void CMenuContFlashlight::Draw()
 {
-	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	// in-game: tint the rows' column, show the game behind the rest; out-of-game: the
+	// current game's backdrop, like the other menu screens (was a flat fill before)
+	DrawScreenBackdrop( CurrentGameBackdrop(), MARGIN - 30, ROW_W + 46 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;
@@ -1565,8 +1568,9 @@ void CMenuContAO::Hide()
 
 void CMenuContAO::Draw()
 {
-	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	// in-game: tint the rows' column, show the game behind the rest; out-of-game: the
+	// current game's backdrop, like the other menu screens (was a flat fill before)
+	DrawScreenBackdrop( CurrentGameBackdrop(), MARGIN - 30, ROW_W + 46 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;
@@ -1691,8 +1695,9 @@ void CMenuContEntShadows::Hide()
 
 void CMenuContEntShadows::Draw()
 {
-	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	// in-game: tint the rows' column, show the game behind the rest; out-of-game: the
+	// current game's backdrop, like the other menu screens (was a flat fill before)
+	DrawScreenBackdrop( CurrentGameBackdrop(), MARGIN - 30, ROW_W + 46 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;

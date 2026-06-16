@@ -366,7 +366,8 @@ bool CMenuContSaves::MouseMove( int x, int y )
 void CMenuContSaves::Draw()
 {
 	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	// panel behind the list only; the screenshot preview on the right keeps its own bg
+	DrawScreenBackdrop( noBackdrop, MARGIN - 30, ListW() + 30 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;

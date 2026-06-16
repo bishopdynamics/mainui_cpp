@@ -182,7 +182,8 @@ bool CMenuContCheats::KeyDown( int key )
 void CMenuContCheats::Draw()
 {
 	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	// panel spans both cheat columns
+	DrawScreenBackdrop( noBackdrop, MARGIN - 30, 2 * COL_W + 40 + 50 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;

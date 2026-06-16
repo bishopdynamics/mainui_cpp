@@ -77,6 +77,12 @@ float EaseOutCubic( float t );
 // render-space helpers
 void DrawPicAspectFit( int x, int y, int w, int h, CImage &pic, unsigned int color = 0xFFFFFFFF );
 void DrawBackdrop( CImage &pic ); // full-screen game-art backdrop (or flat bg)
+// in-game: show the live game through the menu and tint just the content column
+// (logical x range) so its rows stay readable; otherwise the normal full backdrop
+void DrawScreenBackdrop( CImage &pic, int colLeft, int colWidth );
+// the two pieces of the above, for screens that want a custom panel arrangement:
+void DrawSeethruBackdrop( CImage &pic );              // live game in-game, art/flat otherwise
+void DrawContentPanel( int x, int y, int w, int h );  // tinted panel, logical units
 // word-wrapped multi-line text ('\n' respected); returns y below the last line
 int DrawWrappedText( HFont font, int x, int y, int w, int lineH, const char *text, unsigned int color );
 
@@ -118,6 +124,9 @@ int LegendClickKey( void );
 // per-game menu art lookup; returns false (and leaves pic empty) if missing
 bool GameArt( const char *folder, CImage &pic );
 bool GameBackdrop( const char *folder, CImage &pic );
+// the current game's backdrop, loaded once and refreshed when the game changes; for
+// screens (e.g. the shared Configuration tabs) that don't carry their own backdrop member
+CImage &CurrentGameBackdrop( void );
 
 // small shared UI textures (white, tint at draw time)
 CImage &PillPic( void );        // rounded capsule, 2:1

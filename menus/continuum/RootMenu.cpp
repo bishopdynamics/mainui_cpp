@@ -265,7 +265,14 @@ void CMenuContRoot::Draw()
 		}
 	}
 
-	DrawBackdrop( backdrop );
+	// the brand (logo + game name + subtitle) sits in a full-width panel across the top,
+	// so a long game name has all the room it needs; the buttons get their own column
+	// panel below it
+	DrawSeethruBackdrop( backdrop );
+	const int topH = 110;
+	const int gap = 8;
+	DrawContentPanel( MARGIN - 30, 44, (int)uiStatic.width - 2 * ( MARGIN - 30 ), topH );
+	DrawContentPanel( MARGIN - 30, 44 + topH + gap, 480, ( 768 - LEGEND_H - 14 ) - ( 44 + topH + gap ));
 
 	// brand line
 	const int bx = MARGIN * uiStatic.scaleX;
@@ -281,20 +288,19 @@ void CMenuContRoot::Draw()
 		x += lw + 16 * uiStatic.scaleX;
 	}
 
-	// returns the rightmost x reached
-	x = UI_DrawString( fontBrand, x, by, ScreenWidth, brandH * 1.45f,
-		"HALF-LIFE", clrInk, brandH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	// brand: the loaded game's name, with "Continuum Edition" stacked on the line below it
+	// (replaces the fixed "HALF-LIFE", and the game name no longer needs the top-right slot)
+	char gameName[64];
+	Q_strncpy( gameName, gMenu.m_gameinfo.title, sizeof( gameName ));
+	for( char *c = gameName; *c; c++ )
+		if( *c >= 'a' && *c <= 'z' ) *c -= 'a' - 'A';
+
+	UI_DrawString( fontBrand, x, by, ScreenWidth, brandH * 1.45f,
+		gameName, clrInk, brandH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	const int subH = 13 * uiStatic.scaleY;
-	UI_DrawString( fontSmall, x + 22 * uiStatic.scaleX, by + brandH - subH, ScreenWidth, subH * 1.45f,
+	UI_DrawString( fontSmall, x, by + brandH - 2 * uiStatic.scaleY + 2 * subH, ScreenWidth, subH * 1.45f,
 		"C O N T I N U U M   E D I T I O N", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
-
-	// current game context, top right (useful when booted into an expansion)
-	const int ctxH = 19 * uiStatic.scaleY;
-	const char *title = gMenu.m_gameinfo.title;
-	int wide = g_FontMgr->GetTextWideScaled( fontItem, title, ctxH );
-	UI_DrawString( fontItem, ScreenWidth - MARGIN * uiStatic.scaleX - wide, by + 4 * uiStatic.scaleY,
-		wide + 4, ctxH * 1.45f, title, clrInkDim, ctxH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
 	CMenuFramework::Draw();
 

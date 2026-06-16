@@ -186,7 +186,7 @@ void CMenuContGamePage::_VidInit()
 
 void CMenuContGamePage::Draw()
 {
-	DrawBackdrop( backdrop );
+	DrawScreenBackdrop( backdrop, MARGIN - 30, 480 );
 
 	// title block
 	const int tx = MARGIN * uiStatic.scaleX;

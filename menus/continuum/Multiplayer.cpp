@@ -129,7 +129,7 @@ bool CMenuContMultiplayer::KeyDown( int key )
 
 void CMenuContMultiplayer::Draw()
 {
-	DrawBackdrop( backdrop );
+	DrawScreenBackdrop( backdrop, MARGIN - 30, ROW_W + 46 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;
@@ -488,7 +488,7 @@ bool CMenuContServers::MouseMove( int x, int y )
 void CMenuContServers::Draw()
 {
 	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	DrawScreenBackdrop( noBackdrop, MARGIN - 30, ListW() + 60 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;
@@ -869,7 +869,7 @@ bool CMenuContHostGame::KeyDown( int key )
 void CMenuContHostGame::Draw()
 {
 	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	DrawScreenBackdrop( noBackdrop, MARGIN - 30, ROW_W + 46 );
 
 	const int tx = MARGIN * uiStatic.scaleX;
 	const int ty = 64 * uiStatic.scaleY;

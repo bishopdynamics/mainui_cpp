@@ -491,7 +491,7 @@ bool CMenuContBindings::MouseMove( int x, int y )
 void CMenuContBindings::Draw()
 {
 	static CImage noBackdrop;
-	DrawBackdrop( noBackdrop );
+	DrawScreenBackdrop( noBackdrop, MARGIN - 30, ROW_W + 46 );
 
 	// title block
 	const int tx = MARGIN * uiStatic.scaleX;
