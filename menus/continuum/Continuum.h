@@ -140,6 +140,14 @@ public:
 	// settings rows override this; plain buttons ignore it
 	virtual void ResetDefault() { }
 
+	// the row's default value as text for the subtitle ("default: <out>"); returns
+	// false when there's no meaningful default (computed values, text fields)
+	virtual bool FormatDefault( char *out, int size )
+	{
+		if( szDefault && szDefault[0] ) { Q_strncpy( out, szDefault, size ); return true; }
+		return false;
+	}
+
 	// scrolled layout: same math as CalcPosition/CalcSizes but WITHOUT the
 	// "negative position means bottom-anchored" convention, so rows can sit
 	// partially above the viewport while a list scrolls
@@ -147,6 +155,7 @@ public:
 
 	const char *szHint;
 	const char *szValue;  // optional right-aligned value (spinner-style rows)
+	const char *szDefault; // optional default-value label, drawn dim in parens after the value
 	const char *szBadge;  // optional small amber badge after label ("RESTART")
 	const char *szCard;   // optional long explainer, shown in a side panel while focused
 	const char *szCardTitle;
@@ -193,6 +202,16 @@ public:
 	void Reload() override { bOn = EngFuncs::GetCvarFloat( szCvar ) != 0.0f; }
 	void ResetDefault() override { EngFuncs::CvarSetValue( szCvar, flDefault ); Reload(); }
 
+	// the default ON/OFF state for the subtitle (overridden where the row doesn't
+	// carry a plain flDefault - invert look, always-run)
+	virtual bool DefaultOn() const { return flDefault != 0.0f; }
+
+	bool FormatDefault( char *out, int size ) override
+	{
+		Q_strncpy( out, DefaultOn() ? "on" : "off", size );
+		return true;
+	}
+
 	bool KeyDown( int key ) override
 	{
 		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) || UI::Key::IsEnter( key )
@@ -230,8 +249,8 @@ public:
 	}
 
 	const char *szCvar;
-	float flDefault;
-	bool bOn;
+	float flDefault = 0.0f;
+	bool bOn = false;
 };
 
 class CContSpinRow : public CContButton
@@ -248,6 +267,7 @@ public:
 		szValues = NULL;
 		nCount = count;
 		iDefault = defIdx;
+		szDefault = labels[defIdx];
 	}
 
 	void SetupString( const char *cv, const char **labels, const char **svals, int count, int defIdx )
@@ -258,6 +278,7 @@ public:
 		flValues = NULL;
 		nCount = count;
 		iDefault = defIdx;
+		szDefault = labels[defIdx];
 	}
 
 	void Reload() override
@@ -516,6 +537,12 @@ public:
 		ty = m_scPos.y + m_scSize.h / 2 - th / 2;
 	}
 
+	bool FormatDefault( char *out, int size ) override
+	{
+		snprintf( out, size, "%.*f", nDecimals, flDefault );
+		return true;
+	}
+
 	virtual void SetValue( float v )
 	{
 		// snap to step
@@ -607,6 +634,8 @@ class CContInvertRow : public CContToggleRow
 public:
 	void SetupSign( const char *cv ) { szCvar = cv; }
 
+	bool DefaultOn() const override { return false; } // default is not inverted
+
 	void Reload() override { bOn = EngFuncs::GetCvarFloat( szCvar ) < 0.0f; }
 	void ResetDefault() override
 	{
@@ -645,6 +674,8 @@ public:
 		EngFuncs::CvarSetValue( "cl_sidespeed", speed );
 		EngFuncs::CvarSetValue( "cl_movespeedkey", on ? 0.3f : (float)RUN / (float)WALK );
 	}
+
+	bool DefaultOn() const override { return true; } // default is always-run on
 
 	// always-run leaves the speed key as a walk multiplier ( <1 )
 	void Reload() override { bOn = EngFuncs::GetCvarFloat( "cl_movespeedkey" ) < 1.0f; }

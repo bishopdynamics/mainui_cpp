@@ -395,7 +395,7 @@ CContButton
 ====================
 */
 CContButton::CContButton() : BaseClass(),
-	szHint( NULL ), szValue( NULL ), szBadge( NULL ),
+	szHint( NULL ), szValue( NULL ), szDefault( NULL ), szBadge( NULL ),
 	szCard( NULL ), szCardTitle( NULL ), bCaution( false ), bValueArrows( true )
 {
 	eTextAlignment = QM_LEFT;
@@ -485,11 +485,29 @@ void CContButton::Draw()
 	const int padX = x + 22 * uiStatic.scaleX + slide;
 
 	unsigned int labelColor = grayed ? clrInkFaint : ( t > 0.0f ? clrInk : clrInkDim );
+
+	// subtitle line below the name (shown while focused): the row's hint, with the
+	// default value appended ("default: on" / "default: 8x" / "default: 2.50")
+	char subtitle[200];
+	{
+		char defBuf[40];
+		const bool hasDef = FormatDefault( defBuf, sizeof( defBuf ));
+		if( szHint && hasDef )
+			snprintf( subtitle, sizeof( subtitle ), "%s    default: %s", szHint, defBuf );
+		else if( szHint )
+			Q_strncpy( subtitle, szHint, sizeof( subtitle ));
+		else if( hasDef )
+			snprintf( subtitle, sizeof( subtitle ), "default: %s", defBuf );
+		else
+			subtitle[0] = '\0';
+	}
+	const bool hasSub = subtitle[0] != '\0';
+
 	int labelY = y + ( h - labelH ) / 2;
 
-	// reserve space for the hint while focused; keep clear daylight between
-	// the label's descenders and the hint
-	if( szHint && t > 0.0f )
+	// reserve space for the subtitle while focused; keep clear daylight between
+	// the label's descenders and the subtitle
+	if( hasSub && t > 0.0f )
 		labelY = y + h / 2 - labelH - 5 * uiStatic.scaleY;
 
 	// returns the rightmost x reached
@@ -509,12 +527,12 @@ void CContButton::Draw()
 			szBadge, clrCaution, bh, QM_CENTER, ETF_NOSIZELIMIT | ETF_FORCECOL );
 	}
 
-	if( szHint && t > 0.0f )
+	if( hasSub && t > 0.0f )
 	{
-		// fade the hint in with focus
-		unsigned int hintColor = ( clrInkFaint & 0x00FFFFFF ) | ((unsigned int)( t * 255.0f ) << 24 );
+		// fade the subtitle in with focus
+		unsigned int subColor = ( clrInkFaint & 0x00FFFFFF ) | ((unsigned int)( t * 255.0f ) << 24 );
 		UI_DrawString( fontHint, padX, y + h / 2 + 6 * uiStatic.scaleY, w - 30 * uiStatic.scaleX, hintH * 1.45f,
-			szHint, hintColor, hintH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
+			subtitle, subColor, hintH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
 	}
 
 	if( szValue )
