@@ -396,6 +396,14 @@ void CMenuContConfig::_Init()
 	// HD model pack: only meaningful when the game ships a <gamedir>_hd folder
 	hdModels.SetNameAndStatus( "HD Models", NULL );
 	hdModels.szHint = "Use the high-definition model & sprite pack";
+	hdModels.szCardTitle = "HD MODELS";
+	hdModels.szCard =
+		"Swaps in the high-definition model and sprite pack that shipped "
+		"with the later Half-Life releases - rounder character meshes and "
+		"sharper skins in place of the 1998 originals.\n\n"
+		"Only the official _hd content is used, so animations and "
+		"silhouettes are unchanged, just more detailed. Off keeps the "
+		"authentic low-poly look.";
 	hdModels.Setup( "fs_mount_hd", 0 );
 	// fs_mount_hd only changes which files resolve after a filesystem rescan;
 	// the row writes the cvar, then fs_reapply remounts and (if a single-player
@@ -510,11 +518,27 @@ void CMenuContConfig::_Init()
 
 	aoWorldEnable.SetNameAndStatus( "World AO", NULL );
 	aoWorldEnable.szHint = "Baked corner/recess shading on the world geometry";
+	aoWorldEnable.szCardTitle = "WORLD AO";
+	aoWorldEnable.szCard =
+		"Ambient occlusion darkens the corners, seams and recesses of the "
+		"world where light naturally struggles to reach. It is baked once "
+		"per map, so it costs nothing to draw.\n\n"
+		"The result is depth and contact that the original flat lightmaps "
+		"never had. Subtle by design - use Customize Ambient Occlusion to "
+		"push it harder.";
 	aoWorldEnable.Setup( "r_ao_world", 1 );
 	AddRow( TAB_ADVANCED, aoWorldEnable, ROW_H );
 
 	aoEntityEnable.SetNameAndStatus( "Entity AO", NULL );
 	aoEntityEnable.szHint = "Soft contact shadow under monsters, props and the player";
+	aoEntityEnable.szCardTitle = "ENTITY AO";
+	aoEntityEnable.szCard =
+		"Lays a soft shadow on the ground directly beneath monsters, props "
+		"and the player, so they sit in the world instead of floating just "
+		"above it.\n\n"
+		"This is a cheap fake - a blurred blob that tracks the entity's "
+		"feet - not a true cast shadow. For real shadows that follow the "
+		"light, turn on Entity Shadows below.";
 	aoEntityEnable.Setup( "r_ao", 1 );
 	AddRow( TAB_ADVANCED, aoEntityEnable, ROW_H );
 
@@ -528,6 +552,14 @@ void CMenuContConfig::_Init()
 
 	entShadows.SetNameAndStatus( "Entity Shadows", NULL );
 	entShadows.szHint = "Monsters, props and the player cast real shadows onto the world (experimental)";
+	entShadows.szCardTitle = "ENTITY SHADOWS";
+	entShadows.szCard =
+		"Real depth-mapped shadows cast by monsters, props and the player "
+		"onto the world and each other - the genuine article, shaped by the "
+		"light, not the blob under Entity AO.\n\n"
+		"Still experimental: it costs more than anything else here and can "
+		"show edge artifacts in busy scenes. Customize Entity Shadows tunes "
+		"softness, resolution and how many casters draw at once.";
 	entShadows.Setup( "r_entity_shadows", 0 );
 	AddRow( TAB_ADVANCED, entShadows, ROW_H );
 
@@ -543,6 +575,14 @@ void CMenuContConfig::_Init()
 
 	flProjected.SetNameAndStatus( "Improved Flashlight", NULL );
 	flProjected.szHint = "Projected-texture spotlight instead of the stock round blob";
+	flProjected.szCardTitle = "IMPROVED FLASHLIGHT";
+	flProjected.szCard =
+		"Replaces the stock flashlight - a flat round patch of brightness "
+		"pasted onto whatever you face - with a real projected spotlight: a "
+		"proper cone that falls off with distance and casts its own shadows.\n\n"
+		"Customize Flashlight tunes the beam shape, brightness, range and "
+		"shadows. Infinite Battery removes the drain if you would rather not "
+		"manage it.";
 	flProjected.Setup( "r_flashlight_projected", 0 );
 	AddRow( TAB_GAMEPLAY, flProjected, ROW_H );
 
@@ -604,6 +644,14 @@ void CMenuContConfig::_Init()
 	renderScale.SetNameAndStatus( "Render Scale", NULL );
 	renderScale.szHint = "Renders at a fraction of the window size - retro pixels, big speedup";
 	renderScale.bCaution = true;
+	renderScale.szCardTitle = "RENDER SCALE";
+	renderScale.szCard =
+		"Renders the 3D scene at a fraction of the window resolution and "
+		"upscales the result - trading sharpness for a large speed-up, and "
+		"a chunky retro-pixel look at the higher multipliers.\n\n"
+		"The HUD and menus stay crisp; only the world is scaled. 2x is a "
+		"gentle boost; 4x on a small map is deliberately blocky but "
+		"completely harmless.";
 	renderScale.Setup( "vid_scale", scaleLabels, scaleValues, 4, 0 );
 	AddRow( TAB_ADVANCED, renderScale, ROW_H );
 
