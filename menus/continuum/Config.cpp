@@ -1315,7 +1315,7 @@ private:
 	void _Init() override;
 	void _VidInit() override;
 
-	CContSliderRow beam, spillCone, spillBright, range, bright, vOffset, shadowSize;
+	CContSliderRow beam, spillCone, spillBright, range, bright, vOffset, hOffset, shadowSize;
 	CContToggleRow tint, shadows;
 };
 
@@ -1347,9 +1347,14 @@ void CMenuContFlashlight::_Init()
 	AddItem( bright );
 
 	vOffset.SetNameAndStatus( "Vertical Offset", NULL );
-	vOffset.szHint = "Light height vs the eye for shadow parallax: + above (headlamp), - below";
-	vOffset.Setup( "r_flashlight_offset", -20, 20, 2, 4, 0 );
+	vOffset.szHint = "Light height vs the eye for shadow parallax: + above (headlamp), - below (chest)";
+	vOffset.Setup( "r_flashlight_offset", -24, 24, 2, -4, 0 );
 	AddItem( vOffset );
+
+	hOffset.SetNameAndStatus( "Horizontal Offset", NULL );
+	hOffset.szHint = "Light side vs the eye: + right (shoulder), - left, 0 centered (chest)";
+	hOffset.Setup( "r_flashlight_offset_h", -24, 24, 2, -4, 0 );
+	AddItem( hOffset );
 
 	tint.SetNameAndStatus( "Tint by Surface", NULL );
 	tint.szHint = "Beam reveals the surface texture instead of a flat glow";
@@ -1374,7 +1379,7 @@ void CMenuContFlashlight::_VidInit()
 	const int itemH = 50, gap = 4;
 	int y = 208;
 
-	CContButton *rows[] = { &beam, &spillCone, &spillBright, &range, &bright, &vOffset, &tint, &shadows, &shadowSize };
+	CContButton *rows[] = { &beam, &spillCone, &spillBright, &range, &bright, &vOffset, &hOffset, &tint, &shadows, &shadowSize };
 	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
 		rows[i]->SetRect( MARGIN, y, ROW_W, itemH );
 }
@@ -1397,7 +1402,7 @@ bool CMenuContFlashlight::KeyDown( int key )
 	if( key == K_X_BUTTON || key == 'x' )
 	{
 		beam.ResetDefault(); spillCone.ResetDefault(); spillBright.ResetDefault();
-		range.ResetDefault(); bright.ResetDefault(); vOffset.ResetDefault();
+		range.ResetDefault(); bright.ResetDefault(); vOffset.ResetDefault(); hOffset.ResetDefault();
 		tint.ResetDefault(); shadows.ResetDefault(); shadowSize.ResetDefault();
 		EngFuncs::PlayLocalSound( uiStatic.sounds[SND_LAUNCH] );
 		return true;
