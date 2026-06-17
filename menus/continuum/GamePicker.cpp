@@ -369,4 +369,36 @@ void CMenuContGamePicker::Draw()
 	DrawLegend( legend, V_ARRAYSIZE( legend ), "SWITCHING CAMPAIGNS REQUIRES RESTART" );
 }
 
-ADD_MENU( menu_continuum_games, CMenuContGamePicker, UI_ContGamePicker_Menu );
+static CMenuContGamePicker *s_pGamePicker = NULL;
+
+static void UI_ContGamePicker_Precache( void )
+{
+	s_pGamePicker = new CMenuContGamePicker();
+
+	// Pre-warm every installed game's card art/backdrop into the engine
+	// texture cache so opening the picker doesn't hitch decoding+uploading
+	// them all on first Show(). PIC_Load caches by name, so RefreshGames()
+	// later just gets the cached handles back. GameArt() == GameBackdrop(),
+	// so one load per game warms both the card thumbnail and the backdrop.
+	for( int i = 0; ; i++ )
+	{
+		gameinfo2_t *gi = EngFuncs::GetModInfo( i );
+		if( !gi ) break;
+
+		CImage warm;
+		GameBackdrop( gi->gamefolder, warm );
+	}
+}
+
+static void UI_ContGamePicker_Shutdown( void )
+{
+	delete s_pGamePicker;
+	s_pGamePicker = NULL;
+}
+
+void UI_ContGamePicker_Menu( void )
+{
+	s_pGamePicker->Show();
+}
+
+ADD_MENU4( menu_continuum_games, UI_ContGamePicker_Precache, UI_ContGamePicker_Menu, UI_ContGamePicker_Shutdown );
