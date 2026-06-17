@@ -69,6 +69,31 @@ void DrawPicAspectFit( int x, int y, int w, int h, CImage &pic, unsigned int col
 	UI_DrawPic( x + ( w - dw ) / 2, y + ( h - dh ) / 2, dw, dh, color, pic );
 }
 
+// cover-fill a render-space box: scale to FILL keeping aspect, crop the overflow
+// (clipped to the box). Matches the full-screen backdrop fit so the picker card and
+// the background read the same: narrower-than-box art (4:3) fills width, top-pinned
+// (bottom cropped); wider art (16:9/21:9) fills height, centered (sides cropped).
+void DrawPicAspectCover( int x, int y, int w, int h, CImage &pic, unsigned int color )
+{
+	if( !pic.IsValid( ))
+		return;
+
+	const int pw = EngFuncs::PIC_Width( pic.Handle() );
+	const int ph = EngFuncs::PIC_Height( pic.Handle() );
+	if( pw <= 0 || ph <= 0 )
+		return;
+
+	int dw = w, dh = h;
+	if( pw * h < ph * w ) // image narrower than box: fill width, crop top/bottom
+		dh = (int)( (float)w * ph / pw );
+	else                  // image wider (or equal): fill height, crop sides
+		dw = (int)( (float)h * pw / ph );
+
+	EngFuncs::PIC_EnableScissor( x, y, w, h );
+	UI_DrawPic( x + ( w - dw ) / 2, y, dw, dh, color, pic ); // center horizontally, top-pin
+	EngFuncs::PIC_DisableScissor();
+}
+
 void DrawBackdrop( CImage &pic )
 {
 	if( pic.IsValid( ))
@@ -408,6 +433,20 @@ bool GameArt( const char *folder, CImage &pic )
 
 bool GameBackdrop( const char *folder, CImage &pic )
 {
+	char path[96];
+
+	// a hand-authored override shipped in continuum/games_override/ wins over the
+	// engine-composed art (some games' own backgrounds compose poorly - e.g. Steam's
+	// blank 4:3 set forces a weaker widescreen one; an override ships a better image
+	// and the composer skips that game entirely)
+	snprintf( path, sizeof( path ), "gfx/shell/continuum/games_override/%s.png", folder );
+	if( EngFuncs::FileExists( path, false ))
+	{
+		pic.Load( path );
+		if( pic.IsValid( ))
+			return true;
+	}
+
 	// the game's own composed art (un-blurred; the "_bd" assets are retired), or the
 	// shared default when it has none - e.g. a game whose splash can't be extracted, or
 	// one that ships no menu background at all

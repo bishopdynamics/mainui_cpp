@@ -30,20 +30,20 @@ struct gamedef_t
 
 static const gamedef_t g_KnownGames[] =
 {
-	{ "valve",   "Half-Life",      "Valve - 1998 - 96 maps" },
-	{ "gearbox", "Opposing Force", "Gearbox - 1999 - 43 maps" },
-	{ "bshift",  "Blue Shift",     "Gearbox - 2001 - 37 maps" },
-	{ "hunger",  "They Hunger",    "Neil Manke - 2001 - 63 maps" },
-	{ "uplink",  "Uplink",         "Valve - 1999 - 10 maps" },
-	{ "dayone",  "Day One",        "Valve - 1998 - 27 maps" },
+	{ "valve",   "Half-Life",      "Valve - 1998" },
+	{ "gearbox", "Opposing Force", "Gearbox - 1999" },
+	{ "bshift",  "Blue Shift",     "Gearbox - 2001" },
+	{ "hunger",  "They Hunger",    "Neil Manke - 2001" },
+	{ "uplink",  "Uplink",         "Valve - 1999" },
+	{ "dayone",  "Day One",        "Valve - 1998" },
 };
 
 // card layout, logical units
-#define CARD_W      176
-#define CARD_ART_H  132
-#define CARD_LBL_H  50
+#define CARD_W      264		// 50% larger cards
+#define CARD_ART_H  148		// ~16:9 of CARD_W (matches the 16:9 game art)
+#define CARD_LBL_H  75
 #define CARD_H      ( CARD_ART_H + CARD_LBL_H )
-#define CARD_GAP    20
+#define CARD_GAP    30
 #define CARD_Y      250
 
 class CMenuContGamePicker : public CMenuFramework
@@ -325,21 +325,22 @@ void CMenuContGamePicker::Draw()
 
 		const unsigned int dim = sel ? 0xFFFFFFFF : 0xFF8E8E8E;
 
-		// art (4:3 source onto 4:3 box; fit handles odd sizes)
+		// art: cover-fill the 16:9 box, same fit as the full-screen backdrop (4:3
+		// fills width/top-pinned, 16:9 exact, wider fills height/centered)
 		UI_FillRect( x, y, w, sArtH, 0xFF000000 );
 		if( c.art.IsValid( ))
-			DrawPicAspectFit( x, y, w, sArtH, c.art, dim );
+			DrawPicAspectCover( x, y, w, sArtH, c.art, dim );
 
 		// label block
 		UI_FillRect( x, y + sArtH, w, sLblH, sel ? 0xE614171D : 0xB414171D );
 
-		const int nameH = 14 * uiStatic.scaleY;
-		const int metaH = 11 * uiStatic.scaleY;
-		const int px = x + 12 * uiStatic.scaleX;
-		UI_DrawString( fontSmall, px, y + sArtH + 9 * uiStatic.scaleY, w - 16 * uiStatic.scaleX, nameH * 1.45f,
+		const int nameH = 21 * uiStatic.scaleY;	// label text scaled with the 50%-larger card
+		const int metaH = 17 * uiStatic.scaleY;
+		const int px = x + 18 * uiStatic.scaleX;
+		UI_DrawString( fontSmall, px, y + sArtH + 14 * uiStatic.scaleY, w - 24 * uiStatic.scaleX, nameH * 1.45f,
 			c.title, sel ? clrInk : clrInkDim, nameH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
-		UI_DrawString( fontHint, px, y + sArtH + 9 * uiStatic.scaleY + nameH + 5 * uiStatic.scaleY,
-			w - 16 * uiStatic.scaleX, metaH * 1.45f,
+		UI_DrawString( fontHint, px, y + sArtH + 14 * uiStatic.scaleY + nameH + 8 * uiStatic.scaleY,
+			w - 24 * uiStatic.scaleX, metaH * 1.45f,
 			c.meta, clrInkFaint, metaH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL | ETF_NO_WRAP );
 
 		// frame

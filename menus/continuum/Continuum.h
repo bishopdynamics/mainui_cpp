@@ -76,6 +76,7 @@ float EaseOutCubic( float t );
 
 // render-space helpers
 void DrawPicAspectFit( int x, int y, int w, int h, CImage &pic, unsigned int color = 0xFFFFFFFF );
+void DrawPicAspectCover( int x, int y, int w, int h, CImage &pic, unsigned int color = 0xFFFFFFFF );
 void DrawBackdrop( CImage &pic ); // full-screen game-art backdrop (or flat bg)
 // in-game: show the live game through the menu and tint just the content column
 // (logical x range) so its rows stay readable; otherwise the normal full backdrop
