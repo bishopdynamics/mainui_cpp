@@ -198,7 +198,7 @@ private:
 	CContHeader hdrStream, hdrTex, hdrLight, hdrShadows, hdrFx, hdrPerf, hdrConsole;
 	CContToggleRow levelStreaming, enableCheats;
 	CContSpinRow aniso, texFilter, lmFilter;
-	CContToggleRow detailTex, dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
+	CContToggleRow dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
 	CContScreenOverlayRow screenOverlay; // version watermark + console notify (also in screenshots)
 	CContToggleRow aoWorldEnable, aoEntityEnable;
 	CContButton aoCustomize;
@@ -499,10 +499,6 @@ void CMenuContConfig::_Init()
 	lmFilter.Setup( "gl_lightmap_nearest", filterLabels, filterValues, 2, 0 );
 	AddRow( TAB_ADVANCED, lmFilter, ROW_H );
 
-	detailTex.SetNameAndStatus( "Detail Textures", NULL );
-	detailTex.Setup( "r_detailtextures", 1 );
-	AddRow( TAB_ADVANCED, detailTex, ROW_H );
-
 	hdrLight.SetNameAndStatus( "LIGHTING", NULL );
 	AddRow( TAB_ADVANCED, hdrLight, HEADER_H );
 
@@ -521,9 +517,9 @@ void CMenuContConfig::_Init()
 	lightExt.Setup( "r_lighting_extended", 1 );
 	AddRow( TAB_ADVANCED, lightExt, ROW_H );
 
-	aoWorldEnable.SetNameAndStatus( "World AO", NULL );
+	aoWorldEnable.SetNameAndStatus( "Additional World AO", NULL );
 	aoWorldEnable.szHint = "Baked corner/recess shading on the world geometry";
-	aoWorldEnable.szCardTitle = "WORLD AO";
+	aoWorldEnable.szCardTitle = "ADDITIONAL WORLD AO";
 	aoWorldEnable.szCard =
 		"Ambient occlusion darkens the corners, seams and recesses of the "
 		"world where light naturally struggles to reach. It is baked once "
