@@ -1465,7 +1465,7 @@ private:
 
 	CContSliderRow aoStrength, aoSize, aoSoft, aoHeight, aoWorld, aoWorldRange, aoWorldMax;
 	CContToggleRow aoEntityDbg, aoWorldDbg;
-	float m_bakeRangeOnShow;	// r_ao_world_dist when the page opened; re-bake on leave only if it changed
+	CContButton aoRebake;	// manual "re-bake all maps"; only usable from the main menu
 };
 
 void CMenuContAO::_Init()
@@ -1501,7 +1501,7 @@ void CMenuContAO::_Init()
 	AddItem( aoWorld );
 
 	aoWorldRange.SetNameAndStatus( "World Range", NULL );
-	aoWorldRange.szHint = "How far world AO reaches into corners (re-bakes when you leave)";
+	aoWorldRange.szHint = "How far world AO reaches into corners (use Re-bake to apply)";
 	aoWorldRange.Setup( "r_ao_world_dist", 16, 256, 8, 64, 0 );
 	AddItem( aoWorldRange );
 
@@ -1514,6 +1514,20 @@ void CMenuContAO::_Init()
 	aoWorldDbg.szHint = "Show the baked world AO as hot pink in the lightmap";
 	aoWorldDbg.Setup( "r_ao_world_debug", 0 );
 	AddItem( aoWorldDbg );
+
+	aoRebake.SetNameAndStatus( "Re-bake World AO", NULL );
+	aoRebake.szHint = "Re-run the world-AO bake for every map (main menu only)";
+	aoRebake.szCardTitle = "RE-BAKE WORLD AO";
+	aoRebake.szCard =
+		"World AO is raycast offline and cached per map, so changing World "
+		"Range doesn't take effect until the maps are re-baked.\n\n"
+		"This re-bakes every map in the game at the current World Range. It "
+		"loads each map in turn, so it can only run when no map is live - "
+		"return to the MAIN MENU first (this button is disabled in-game).\n\n"
+		"Baking can take a while; the game shows a progress screen. New "
+		"caches are picked up the next time you load each map.";
+	aoRebake.onReleased.SetCommand( false, "r_ao_bake_all\n" );
+	AddItem( aoRebake );
 }
 
 void CMenuContAO::_VidInit()
@@ -1523,7 +1537,7 @@ void CMenuContAO::_VidInit()
 	const int itemH = 44, gap = 4;	// 10 rows: slightly shorter than other sub-pages so they all fit above the legend
 	int y = 208;
 
-	CContButton *rows[] = { &aoStrength, &aoSize, &aoSoft, &aoHeight, &aoEntityDbg, &aoWorld, &aoWorldRange, &aoWorldMax, &aoWorldDbg };
+	CContButton *rows[] = { &aoStrength, &aoSize, &aoSoft, &aoHeight, &aoEntityDbg, &aoWorld, &aoWorldRange, &aoWorldMax, &aoWorldDbg, &aoRebake };
 	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
 		rows[i]->SetRect( MARGIN, y, ROW_W, itemH );
 }
@@ -1558,16 +1572,14 @@ bool CMenuContAO::KeyDown( int key )
 void CMenuContAO::Show()
 {
 	CMenuFramework::Show();
-	m_bakeRangeOnShow = EngFuncs::GetCvarFloat( "r_ao_world_dist" );	// baseline to detect a bake-time change
+	// the all-maps bake loads each map in turn, so it can't run while a map is live;
+	// gray the button out in-game (its card explains you must be at the main menu)
+	aoRebake.SetGrayed( CL_IsActive( ));
 }
 
 void CMenuContAO::Hide()
 {
 	EngFuncs::ClientCmd( false, "host_writeconfig\n" );
-	// World Range is the only bake-time setting (strength/clamp/debug are live), so only
-	// re-bake when it actually changed - otherwise leaving the page is free.
-	if( EngFuncs::GetCvarFloat( "r_ao_world_dist" ) != m_bakeRangeOnShow )
-		EngFuncs::ClientCmd( false, "r_ao_bake_all\n" );
 	CMenuFramework::Hide();
 }
 
