@@ -709,6 +709,38 @@ public:
 	}
 };
 
+// Engine version watermark (scr_drawversion) + on-screen console notify lines
+// (con_notifytime); both also bleed into screenshots. One switch for clean shots.
+// Continuum's map-capture forces them off regardless of this (hlsdk client.cpp).
+class CContScreenOverlayRow : public CContToggleRow
+{
+public:
+	void Apply( bool on )
+	{
+		EngFuncs::CvarSetValue( "scr_drawversion", on ? 1.0f : 0.0f );
+		EngFuncs::CvarSetValue( "con_notifytime", on ? 3.0f : 0.0f );
+	}
+
+	bool DefaultOn() const override { return true; }
+
+	void Reload() override { bOn = EngFuncs::GetCvarFloat( "scr_drawversion" ) != 0.0f; }
+	void ResetDefault() override { Apply( true ); bOn = true; }
+
+	bool KeyDown( int key ) override
+	{
+		if( UI::Key::IsLeftArrow( key ) || UI::Key::IsRightArrow( key ) || UI::Key::IsEnter( key )
+			|| ( key == K_MOUSE1 && UI_CursorInRect( m_scPos, m_scSize )))
+		{
+			bOn = !bOn;
+			Apply( bOn );
+			PlayLocalSound( uiStatic.sounds[SND_MOVE] );
+			_Event( QM_CHANGED );
+			return true;
+		}
+		return CContButton::KeyDown( key );
+	}
+};
+
 // slider that drives several cvars at once with one magnitude, preserving
 // each cvar's sign (joy look sensitivity, stick deadzones)
 class CContMultiSliderRow : public CContSliderRow

@@ -199,6 +199,7 @@ private:
 	CContToggleRow levelStreaming, enableCheats;
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow detailTex, dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
+	CContScreenOverlayRow screenOverlay; // version watermark + console notify (also in screenshots)
 	CContToggleRow aoWorldEnable, aoEntityEnable;
 	CContButton aoCustomize;
 	CContToggleRow entShadows;
@@ -443,6 +444,10 @@ void CMenuContConfig::_Init()
 	conFontSize.szHint = "Applies immediately";
 	conFontSize.Setup( "con_fontscale", 1.0f, 2.5f, 0.1f, 1.0f, 1 );
 	AddRow( TAB_INTERFACE, conFontSize, ROW_H );
+
+	screenOverlay.SetNameAndStatus( "Debugging messages", NULL );
+	screenOverlay.szHint = "Engine version watermark + recent console messages (shown on screen and in screenshots)";
+	AddRow( TAB_INTERFACE, screenOverlay, ROW_H );
 
 	// ---- advanced ----
 	hdrStream.SetNameAndStatus( "STREAMING", NULL );
