@@ -37,6 +37,10 @@ GNU General Public License for more details.
 //                    AFTER mark rec_stop (with a small wait) so the restored
 //                    overlay never lands in the GIF. Both are optional — omit
 //                    them to record with the messages/watermark visible.
+//   open_menu        bring the menu up (e.g. over a running game, after a tour
+//                    has started a chapter). Takes effect next frame, so follow
+//                    with a `wait` before the first click.
+//   close_menu       dismiss the menu back to the game (like the Resume button).
 //
 // Matching is case-insensitive and ignores surrounding whitespace, so the
 // script reads like the UI: click "New Game". A missing label is reported with
@@ -61,6 +65,8 @@ enum
 	STEP_MARK,
 	STEP_INHIBIT,   // inhibit_settings: save + force the managed settings to "clean"
 	STEP_RESTORE,   // restore_settings: put the saved values back
+	STEP_OPENMENU,  // open_menu: bring up the menu (e.g. over a running game)
+	STEP_CLOSEMENU, // close_menu: dismiss the menu back to the game
 };
 
 #define TOUR_MAX_STEPS 256
@@ -309,6 +315,14 @@ static void Tour_Load( const char *path )
 		{
 			st->type = STEP_RESTORE;
 		}
+		else if( !stricmp( verb, "open_menu" ))
+		{
+			st->type = STEP_OPENMENU;
+		}
+		else if( !stricmp( verb, "close_menu" ))
+		{
+			st->type = STEP_CLOSEMENU;
+		}
 		else
 		{
 			Con_Printf( "[ui_tour] unknown verb \"%s\" (line skipped)\n", verb );
@@ -357,8 +371,12 @@ void UI_Tour_Think( void )
 	case STEP_BACK:    Con_Printf( "[ui_tour] back\n" ); Tour_Key( K_ESCAPE ); break;
 	case STEP_MARK:    Con_Printf( "[ui_tour] MARK %s\n", st->text ); break;
 	// inhibit BEFORE printing so con_notifytime=0 keeps this very line off screen
-	case STEP_INHIBIT: Tour_InhibitSettings(); Con_Printf( "[ui_tour] inhibit settings\n" ); break;
-	case STEP_RESTORE: Con_Printf( "[ui_tour] restore settings\n" ); Tour_RestoreSettings(); break;
+	case STEP_INHIBIT:   Tour_InhibitSettings(); Con_Printf( "[ui_tour] inhibit settings\n" ); break;
+	case STEP_RESTORE:   Con_Printf( "[ui_tour] restore settings\n" ); Tour_RestoreSettings(); break;
+	// open/close the menu, e.g. to show menus over a running game. Opening takes
+	// effect next frame (UI_Main_Menu), so follow with a wait before clicking.
+	case STEP_OPENMENU:  Con_Printf( "[ui_tour] open menu\n" );  UI_SetActiveMenu( true );  break;
+	case STEP_CLOSEMENU: Con_Printf( "[ui_tour] close menu\n" ); UI_SetActiveMenu( false ); break;
 	}
 }
 
