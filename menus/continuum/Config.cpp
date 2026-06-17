@@ -1228,7 +1228,7 @@ void CMenuContGamepadAxes::_VidInit()
 	VidInitFonts();
 
 	const int itemH = 50, gap = 4;
-	int y = 208;
+	int y = 138;
 
 	for( int i = 0; i < 6; i++, y += itemH + gap )
 		axis[i].SetRect( MARGIN, y, ROW_W, itemH );
@@ -1382,7 +1382,7 @@ void CMenuContFlashlight::_VidInit()
 	VidInitFonts();
 
 	const int itemH = 50, gap = 4;
-	int y = 208;
+	int y = 138;
 
 	CContButton *rows[] = { &beam, &spillCone, &spillBright, &range, &bright, &vOffset, &hOffset, &tint, &shadows, &shadowSize };
 	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
@@ -1540,7 +1540,7 @@ void CMenuContAO::_VidInit()
 	VidInitFonts();
 
 	const int itemH = 44, gap = 4;	// 10 rows: slightly shorter than other sub-pages so they all fit above the legend
-	int y = 208;
+	int y = 138;
 
 	CContButton *rows[] = { &aoStrength, &aoSize, &aoSoft, &aoHeight, &aoEntityDbg, &aoWorld, &aoWorldRange, &aoWorldMax, &aoWorldDbg, &aoRebake };
 	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
@@ -1676,7 +1676,7 @@ void CMenuContEntShadows::_VidInit()
 	VidInitFonts();
 
 	const int itemH = 50, gap = 4;
-	int y = 208;
+	int y = 138;
 
 	CContButton *rows[] = { &esStrength, &esSoft, &esSize, &esMax, &esPlayer, &esDbg };
 	for( size_t i = 0; i < V_ARRAYSIZE( rows ); i++, y += itemH + gap )
