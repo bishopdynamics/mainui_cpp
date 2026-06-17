@@ -272,6 +272,7 @@ int CFontManager::CutText(HFont fontHandle, const char *text, int height, int vi
 #endif
 
 	int whiteSpacePos = 0;
+	bool overflow = false; // set only when the line was cut short by the width limit
 
 	// calculate full text wide
 	while( *ch )
@@ -304,7 +305,10 @@ int CFontManager::CutText(HFont fontHandle, const char *text, int height, int vi
 		}
 
 		if( !reverse && _wide + x >= visibleSize )
+		{
+			overflow = true;
 			break;
+		}
 
 		ch++;
 		_wide += x;
@@ -314,7 +318,10 @@ int CFontManager::CutText(HFont fontHandle, const char *text, int height, int vi
 	{
 		if( *ch && remaining ) *remaining = true;
 		if( wide ) *wide = _wide;
-		if( stopAtWhitespace && whiteSpacePos )
+		// only break at the last whitespace when the line actually overflowed the
+		// width; if the rest of the text fit (end of string or a newline), keep it
+		// whole, otherwise the final word always spills onto its own line
+		if( overflow && stopAtWhitespace && whiteSpacePos )
 			return whiteSpacePos;
 		return ch - text;
 	}
