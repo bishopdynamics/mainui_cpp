@@ -48,7 +48,6 @@ private:
 	CMenuYesNoMessageBox dialog;
 
 	CImage backdrop;
-	CImage lambda;
 	bool m_bLastConnected = false;
 };
 
@@ -171,6 +170,10 @@ void CMenuContRoot::_Init()
 	AddItem( game );
 	AddItem( configuration );
 	AddItem( quit );
+
+	// the root menu has no column panel, so each button carries its own dark tint
+	resumeGame.bBackdrop = saveGame.bBackdrop = loadGame.bBackdrop = cheats.bBackdrop =
+		leaveGame.bBackdrop = game.bBackdrop = configuration.bBackdrop = quit.bBackdrop = true;
 }
 
 void CMenuContRoot::LayoutRows()
@@ -218,7 +221,7 @@ void CMenuContRoot::LayoutRows()
 	// preferred upper-third anchor, but never let the stack run under the bottom
 	// legend/input-prompts bar: shift the whole block up just enough to fit
 	const int bottomLimit = 768 - LEGEND_H - 24; // logical space is 768 tall
-	int y = 300;
+	int y = 285; // buttons anchored a touch higher
 	if( y + blockH > bottomLimit )
 		y = bottomLimit - blockH;
 
@@ -236,7 +239,6 @@ void CMenuContRoot::LayoutRows()
 void CMenuContRoot::_VidInit()
 {
 	VidInitFonts();
-	lambda.Load( "gfx/shell/continuum/lambda.png" );
 
 	GameBackdrop( gMenu.m_gameinfo.gamefolder, backdrop );
 
@@ -265,42 +267,51 @@ void CMenuContRoot::Draw()
 		}
 	}
 
-	// the brand (logo + game name + subtitle) sits in a full-width panel across the top,
-	// so a long game name has all the room it needs; the buttons get their own column
-	// panel below it
+	// brand: logo + 2x game name + "Continuum Edition" subtitle, no panel -- a soft
+	// drop shadow keeps it readable over the backdrop, with a thin amber rule beneath.
+	// The buttons sit directly on the backdrop (no column panel).
 	DrawSeethruBackdrop( backdrop );
-	const int topH = 110;
-	const int gap = 8;
-	DrawContentPanel( MARGIN - 30, 44, (int)uiStatic.width - 2 * ( MARGIN - 30 ), topH );
-	DrawContentPanel( MARGIN - 30, 44 + topH + gap, 480, ( 768 - LEGEND_H - 14 ) - ( 44 + topH + gap ));
 
-	// brand line
+	// brand metrics (2x of the original 36/13/42)
 	const int bx = MARGIN * uiStatic.scaleX;
-	const int by = 70 * uiStatic.scaleY;
-	const int brandH = 36 * uiStatic.scaleY;
-	const int lambdaH = 42 * uiStatic.scaleY;
-	int x = bx;
+	const int by = 13 * uiStatic.scaleY;      // title top (top-aligned glyph top)
+	const int brandH = 61 * uiStatic.scaleY;   // 15% smaller so long titles ("They Hunger Trilogy") fit
+	const int subH = 26 * uiStatic.scaleY;
 
-	if( lambda.IsValid( ))
-	{
-		const int lw = lambdaH * EngFuncs::PIC_Width( lambda.Handle( )) / EngFuncs::PIC_Height( lambda.Handle( ));
-		UI_DrawPic( x, by - 2 * uiStatic.scaleY, lw, lambdaH, 0xFFFFFFFF, lambda );
-		x += lw + 16 * uiStatic.scaleX;
-	}
+	// rule + subtitle stack beneath the title, each separated by `pad` (tune to taste).
+	// titleDescent accounts for the glyphs rendering a bit below the charH box.
+	const int pad = 10 * uiStatic.scaleY;
+	const int titleDescent = 10 * uiStatic.scaleY;
+	const int ruleThk = Q_max( 1, (int)( 2 * uiStatic.scaleY ));
+	const int ruleY = by + brandH + titleDescent + pad;
+	const int subY = ruleY + ruleThk + pad;
 
-	// brand: the loaded game's name, with "Continuum Edition" stacked on the line below it
-	// (replaces the fixed "HALF-LIFE", and the game name no longer needs the top-right slot)
+	const int textX = bx;
+
+	// the loaded game's name, uppercased (replaces the fixed "HALF-LIFE")
 	char gameName[64];
 	Q_strncpy( gameName, gMenu.m_gameinfo.title, sizeof( gameName ));
 	for( char *c = gameName; *c; c++ )
 		if( *c >= 'a' && *c <= 'z' ) *c -= 'a' - 'A';
 
-	UI_DrawString( fontBrand, x, by, ScreenWidth, brandH * 1.45f,
-		gameName, clrInk, brandH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	static const char *szSub = "C O N T I N U U M   E D I T I O N";
+	const int titleW = g_FontMgr->GetTextWideScaled( fontBrandBig, gameName, brandH );
+	const int subW = g_FontMgr->GetTextWideScaled( fontTitle, szSub, subH );
+	const int contentR = textX + Q_max( titleW, subW );
 
-	const int subH = 13 * uiStatic.scaleY;
-	UI_DrawString( fontSmall, x, by + brandH - 2 * uiStatic.scaleY + 2 * subH, ScreenWidth, subH * 1.45f,
-		"C O N T I N U U M   E D I T I O N", clrInkDim, subH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	// drop shadow, then the ink text on top
+	const int sh = 4 * uiStatic.scaleY;
+	UI_DrawString( fontBrandBig, textX + sh, by + sh, ScreenWidth, brandH * 1.45f,
+		gameName, 0xFF000000, brandH, QM_LEFT | QM_TOP, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	UI_DrawString( fontTitle, textX + sh, subY + sh, ScreenWidth, subH * 1.45f,
+		szSub, 0xFF000000, subH, QM_LEFT | QM_TOP, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	UI_DrawString( fontBrandBig, textX, by, ScreenWidth, brandH * 1.45f,
+		gameName, clrInk, brandH, QM_LEFT | QM_TOP, ETF_NOSIZELIMIT | ETF_FORCECOL );
+	UI_DrawString( fontTitle, textX, subY, ScreenWidth, subH * 1.45f,
+		szSub, clrInk, subH, QM_LEFT | QM_TOP, ETF_NOSIZELIMIT | ETF_FORCECOL );
+
+	// thin amber rule beneath the title, aligned to the title's left edge
+	UI_FillRect( textX, ruleY, contentR - textX, ruleThk, clrAccent );
 
 	CMenuFramework::Draw();
 

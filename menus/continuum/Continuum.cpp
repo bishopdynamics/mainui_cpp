@@ -24,6 +24,7 @@ HFont fontItem;
 HFont fontSmall;
 HFont fontBody;
 HFont fontHint;
+HFont fontBrandBig; // ~61 root-menu game title
 
 static cvar_t *ui_glyph_style;
 static cvar_t *sv_chapter_loadout;
@@ -47,6 +48,7 @@ void VidInitFonts( void )
 	fontSmall = CFontBuilder( "Michroma", 12 * scale, 500 ).Create();
 	fontBody  = CFontBuilder( "Trebuchet MS", 16 * scale, 500 ).Create();
 	fontHint  = CFontBuilder( "Trebuchet MS", 13 * scale, 500 ).Create();
+	fontBrandBig = CFontBuilder( "Michroma", 61 * scale, 500 ).Create();
 }
 
 float EaseOutCubic( float t )
@@ -514,7 +516,7 @@ CContButton
 */
 CContButton::CContButton() : BaseClass(),
 	szHint( NULL ), szValue( NULL ), szDefault( NULL ), szBadge( NULL ),
-	szCard( NULL ), szCardTitle( NULL ), bCaution( false ), bValueArrows( true )
+	szCard( NULL ), szCardTitle( NULL ), bCaution( false ), bValueArrows( true ), bBackdrop( false )
 {
 	eTextAlignment = QM_LEFT;
 	SetSize( 400, 56 );
@@ -589,6 +591,10 @@ void CContButton::Draw()
 	const int w = m_scSize.w;
 	const int h = m_scSize.h;
 	const int slide = t * 12 * uiStatic.scaleX;
+
+	// optional dark tint so the row reads against a bare backdrop (set per button)
+	if( bBackdrop )
+		UI_FillRect( x, y, w, h, clrPanel );
 
 	if( t > 0.0f )
 	{

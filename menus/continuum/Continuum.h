@@ -73,6 +73,7 @@ extern HFont fontItem;   // ~19
 extern HFont fontSmall;  // ~12 section headers
 extern HFont fontBody;   // ~16 sans
 extern HFont fontHint;   // ~13 sans
+extern HFont fontBrandBig; // ~61 root-menu game title
 void VidInitFonts( void );
 
 float EaseOutCubic( float t );
@@ -174,6 +175,7 @@ public:
 	const char *szCardTitle;
 	bool bCaution;        // amber accent instead of orange
 	bool bValueArrows;    // draw < > around szValue while focused (off for text rows)
+	bool bBackdrop;       // dark tint behind the row, for buttons sitting on a bare backdrop
 
 protected:
 	float FocusT(); // eased focus-in progress 0..1
