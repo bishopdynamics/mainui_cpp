@@ -41,6 +41,10 @@ cvar_t		*ui_logohorizontal;
 uiStatic_t	uiStatic;
 static CMenuEntry	*s_pEntries = NULL;
 
+// scripted menu tour (menus/continuum/Tour.cpp)
+void UI_Tour_Init( void );
+void UI_Tour_Think( void );
+
 const char	*uiSoundOldPrefix	= "media/";
 const char	*uiSoundNewPrefix	= "sound/common/";
 const char	*uiSounds[] = {
@@ -644,6 +648,9 @@ void UI_UpdateMenu( float flTime )
 	// advance global time
 	uiStatic.realTime = flTime * 1000;
 
+	// step the scripted menu tour (Tour.cpp), if one is running
+	UI_Tour_Think();
+
 	// let's use engine credits "feature" for drawing client windows
 	if( uiStatic.client.IsActive( ))
 		uiStatic.client.Update();
@@ -1160,6 +1167,8 @@ void UI_Init( void )
 			EngFuncs::Cmd_AddCommand( entry->m_szCommand, entry->m_pfnShow );
 		}
 	}
+
+	UI_Tour_Init(); // register ui_tour / ui_tour_stop (Tour.cpp)
 
 	g_FontMgr = new CFontManager();
 
