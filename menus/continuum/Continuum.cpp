@@ -26,6 +26,7 @@ HFont fontBody;
 HFont fontHint;
 
 static cvar_t *ui_glyph_style;
+static cvar_t *sv_chapter_loadout;
 
 void VidInitFonts( void )
 {
@@ -33,6 +34,11 @@ void VidInitFonts( void )
 
 	if( !ui_glyph_style )
 		ui_glyph_style = EngFuncs::CvarRegister( "ui_glyph_style", "auto", FCVAR_ARCHIVE );
+
+	// the Chapters menu writes the selected chapter's starting loadout here for the
+	// game DLL to consume on first spawn; must exist before CvarSet can touch it
+	if( !sv_chapter_loadout )
+		sv_chapter_loadout = EngFuncs::CvarRegister( "sv_chapter_loadout", "", 0 );
 
 	// CFontBuilder dedups identical requests, cheap to call per screen
 	fontBrand = CFontBuilder( "Michroma", 36 * scale, 500 ).Create();

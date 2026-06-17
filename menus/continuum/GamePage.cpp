@@ -62,6 +62,7 @@ private:
 	void NewGameCb();
 
 	CContNewGameRow newGame;
+	CContButton chapters;
 	CContButton loadGame;
 	CContButton saveGame;
 	CContButton multiplayer;
@@ -71,6 +72,7 @@ private:
 	CImage art;
 	CImage backdrop;
 	char szMeta[128];
+	bool m_bHasChapters = false;
 };
 
 void CMenuContGamePage::StartNewGame()
@@ -81,6 +83,9 @@ void CMenuContGamePage::StartNewGame()
 	EngFuncs::CvarSetValue( "pausable", 1.0f );
 	EngFuncs::CvarSetValue( "coop", 0.0f );
 	EngFuncs::CvarSetValue( "maxplayers", 1.0f );
+
+	// a plain New Game must not inherit a loadout left over from a chapter start
+	EngFuncs::CvarSetString( "sv_chapter_loadout", "" );
 
 	EngFuncs::PlayBackgroundTrack( NULL, NULL );
 	EngFuncs::ClientCmd( false, "newgame\n" );
@@ -123,6 +128,9 @@ void CMenuContGamePage::_Init()
 	newGame.szValue = g_szSkillNames[newGame.iSkill];
 	newGame.onReleased = VoidCb( &CMenuContGamePage::NewGameCb );
 
+	chapters.SetNameAndStatus( "Chapters", NULL );
+	chapters.onReleased = UI_ContChapters_Menu;
+
 	loadGame.SetNameAndStatus( "Load Game", NULL );
 	loadGame.onReleased = UI_ContLoadGame_Menu;
 
@@ -135,6 +143,7 @@ void CMenuContGamePage::_Init()
 	dialog.Link( this );
 
 	AddItem( newGame );
+	AddItem( chapters );
 	AddItem( loadGame );
 	AddItem( saveGame );
 	AddItem( multiplayer );
@@ -172,11 +181,23 @@ void CMenuContGamePage::_VidInit()
 	for( char *p = szMeta; *p; p++ )
 		*p = toupper( *p );
 
+	// the Chapters row only exists when this game ships a chapter list
+	char cpath[128];
+	Cont_ChaptersListPath( folder, cpath, sizeof( cpath ));
+	m_bHasChapters = EngFuncs::FileExists( cpath, false ) != 0;
+	chapters.SetVisibility( m_bHasChapters );
+
 	const int itemH = 56, gap = 6;
-	int y = 768 - LEGEND_H - 40 - 4 * ( itemH + gap );
+	const int rows = m_bHasChapters ? 5 : 4;
+	int y = 768 - LEGEND_H - 40 - rows * ( itemH + gap );
 
 	newGame.SetRect( MARGIN, y, 430, itemH );
 	y += itemH + gap;
+	if( m_bHasChapters )
+	{
+		chapters.SetRect( MARGIN, y, 430, itemH );
+		y += itemH + gap;
+	}
 	loadGame.SetRect( MARGIN, y, 430, itemH );
 	y += itemH + gap;
 	saveGame.SetRect( MARGIN, y, 430, itemH );

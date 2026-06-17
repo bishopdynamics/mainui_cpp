@@ -31,6 +31,9 @@ extern bool g_bUiFamilySwitch;           // set by the toggles, read by UI_Main_
 // the screens, shown via these (UI_Main_Menu lives in RootMenu.cpp)
 void UI_ContGamePicker_Menu( void );
 void UI_ContGamePage_Menu( void );
+void UI_ContChapters_Menu( void );
+// "gfx/shell/chapters_<gamefolder>.lst"; the file's presence gates the Chapters button
+void Cont_ChaptersListPath( const char *folder, char *out, int size );
 void UI_ContConfig_Menu( void );
 void UI_ContBindings_Menu( void );
 void UI_ContGamepadAxes_Menu( void );
