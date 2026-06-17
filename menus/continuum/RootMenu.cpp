@@ -49,6 +49,7 @@ private:
 
 	CImage backdrop;
 	bool m_bLastConnected = false;
+	bool m_bLastCheats = false;
 };
 
 void CMenuContRoot::QuitDialogCb()
@@ -185,6 +186,7 @@ void CMenuContRoot::LayoutRows()
 	// mid-game the menu is about THIS game: save/load (singleplayer) and
 	// leaving; switching games means going through Main Menu first
 	const bool cheatsOn = EngFuncs::GetCvarFloat( "sv_cheats" ) != 0.0f;
+	m_bLastCheats = cheatsOn;
 	resumeGame.SetVisibility( connected );
 	saveGame.SetVisibility( single );
 	loadGame.SetVisibility( single );
@@ -248,8 +250,11 @@ void CMenuContRoot::_VidInit()
 void CMenuContRoot::Draw()
 {
 	// the in-game rows (Resume / Main Menu) come and go with the connection,
-	// e.g. right after Main Menu disconnects while this screen stays up
-	if( CL_IsActive() != m_bLastConnected )
+	// e.g. right after Main Menu disconnects while this screen stays up; the
+	// Cheats row likewise appears the moment sv_cheats is toggled from the
+	// Configuration page, without waiting for a resume + reopen
+	if( CL_IsActive() != m_bLastConnected ||
+		( EngFuncs::GetCvarFloat( "sv_cheats" ) != 0.0f ) != m_bLastCheats )
 	{
 		LayoutRows();
 
