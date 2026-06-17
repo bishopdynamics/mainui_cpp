@@ -69,9 +69,7 @@ private:
 
 	CMenuYesNoMessageBox dialog;
 
-	CImage art;
 	CImage backdrop;
-	char szMeta[128];
 	bool m_bHasChapters = false;
 };
 
@@ -174,12 +172,7 @@ void CMenuContGamePage::_VidInit()
 	VidInitFonts();
 
 	const char *folder = gMenu.m_gameinfo.gamefolder;
-	GameArt( folder, art );
 	GameBackdrop( folder, backdrop );
-
-	snprintf( szMeta, sizeof( szMeta ), "%s - STREAMING", folder );
-	for( char *p = szMeta; *p; p++ )
-		*p = toupper( *p );
 
 	// the Chapters row only exists when this game ships a chapter list
 	char cpath[128];
@@ -218,18 +211,8 @@ void CMenuContGamePage::Draw()
 	UI_DrawString( fontBrand, tx, ty, ScreenWidth * 0.45f, titleH * 2.9f,
 		gMenu.m_gameinfo.title, clrInk, titleH, QM_LEFT, ETF_NOSIZELIMIT | ETF_FORCECOL );
 
-	// the game's own art, aspect-fit in a right-side frame
-	if( art.IsValid( ))
-	{
-		const int frameX = ( uiStatic.width - MARGIN - 560 ) * uiStatic.scaleX;
-		const int frameY = 120 * uiStatic.scaleY;
-		const int frameW = 560 * uiStatic.scaleX;
-		const int frameH = 420 * uiStatic.scaleY;
-
-		UI_FillRect( frameX - 2, frameY - 2, frameW + 4, frameH + 4, 0x96000000 );
-		DrawPicAspectFit( frameX, frameY, frameW, frameH, art );
-		UI_DrawRectangleExt( frameX, frameY, frameW, frameH, 0x23FFFFFF, 1 );
-	}
+	// (no right-side art frame: GameArt is the same image as the backdrop, so it
+	// just duplicated the background — the full-screen backdrop carries it now)
 
 	CMenuFramework::Draw();
 
