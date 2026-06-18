@@ -60,6 +60,12 @@ GNU General Public License for more details.
 //                    through; this is a capture tool, so it is NOT restored. Use
 //                    it to flip feature cvars for on/off demos (e.g.
 //                    console r_flashlight_shadows 0).
+//   target_game <folder>
+//                    a directive for the capture wrapper (tools/capture-menu-tour.sh):
+//                    which game to launch this tour against (e.g. gearbox). The
+//                    engine ignores it — the game is already loaded by the time the
+//                    tour runs — so it's a no-op here, kept so the linter/wrapper can
+//                    read it without the engine flagging an unknown verb.
 //
 // Matching is case-insensitive and ignores surrounding whitespace, so the
 // script reads like the UI: click "New Game". A missing label is reported with
@@ -429,6 +435,13 @@ static void Tour_Load( const char *path )
 				Con_Printf( "[ui_tour] console needs a command (line skipped)\n" );
 				continue;
 			}
+		}
+		else if( !stricmp( verb, "target_game" ))
+		{
+			// a directive for the capture wrapper (which game to launch); by the
+			// time the tour runs the game is already loaded, so the engine just
+			// recognizes and ignores it (no step) instead of warning.
+			continue;
 		}
 		else
 		{
