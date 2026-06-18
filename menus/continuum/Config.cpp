@@ -195,8 +195,8 @@ private:
 	CContToggleRow showFps, showMapName, crosshairToggle, classicUi, hdModels;
 
 	// advanced
-	CContHeader hdrStream, hdrTex, hdrLight, hdrShadows, hdrFx, hdrPerf, hdrConsole;
-	CContToggleRow levelStreaming, enableCheats;
+	CContHeader hdrStream, hdrTex, hdrLight, hdrShadows, hdrFx, hdrPerf, hdrConsole, hdrChapters;
+	CContToggleRow levelStreaming, enableCheats, showChapters;
 	CContSpinRow aniso, texFilter, lmFilter;
 	CContToggleRow dynLights, lightExt, ripple, litWater, fovAdjust, conEnable;
 	CContScreenOverlayRow screenOverlay; // version watermark + console notify (also in screenshots)
@@ -464,6 +464,23 @@ void CMenuContConfig::_Init()
 		"reclaim the memory on next launch. Some people like to suffer.";
 	levelStreaming.Setup( "host_level_streaming", 1 );
 	AddRow( TAB_ADVANCED, levelStreaming, ROW_H );
+
+	hdrChapters.SetNameAndStatus( "CHAPTERS", NULL );
+	AddRow( TAB_ADVANCED, hdrChapters, HEADER_H );
+
+	showChapters.SetNameAndStatus( "Chapter Selection", NULL );
+	showChapters.szHint = "EXPERIMENTAL - jump straight into a chapter (supported games only)";
+	showChapters.bCaution = true;
+	showChapters.szCardTitle = "CHAPTER SELECTION";
+	showChapters.szCard =
+		"Adds a Chapters page for the games that ship a chapter list "
+		"(Half-Life, Opposing Force, Blue Shift), so you can jump straight "
+		"into any chapter.\n\n"
+		"Very raw right now: some chapters can't be completed (Office "
+		"Complex's elevator never opens) and you start with a generic "
+		"loadout, not the one that chapter expects.";
+	showChapters.Setup( "ui_chapters", 0 );
+	AddRow( TAB_ADVANCED, showChapters, ROW_H );
 
 	enableCheats.SetNameAndStatus( "Enable Cheats", NULL );
 	enableCheats.szHint = "Adds a Cheats page to the in-game menu";

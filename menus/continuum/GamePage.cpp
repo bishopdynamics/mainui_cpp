@@ -174,10 +174,12 @@ void CMenuContGamePage::_VidInit()
 	const char *folder = gMenu.m_gameinfo.gamefolder;
 	GameBackdrop( folder, backdrop );
 
-	// the Chapters row only exists when this game ships a chapter list
+	// the Chapters row only exists when this game ships a chapter list AND the
+	// experimental ui_chapters feature is enabled (Advanced settings, off by default)
 	char cpath[128];
 	Cont_ChaptersListPath( folder, cpath, sizeof( cpath ));
-	m_bHasChapters = EngFuncs::FileExists( cpath, false ) != 0;
+	m_bHasChapters = EngFuncs::FileExists( cpath, false ) != 0
+		&& EngFuncs::GetCvarFloat( "ui_chapters" ) != 0.0f;
 	chapters.SetVisibility( m_bHasChapters );
 
 	const int itemH = 56, gap = 6;
