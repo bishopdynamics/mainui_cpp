@@ -19,6 +19,42 @@ GNU General Public License for more details.
 
 using namespace Cont;
 
+// Continuum version label for the root-menu legend: "Continuum v<VERSION>-<commit>".
+// The string is generated at build time into continuum/gfx/shell/continuum/version.txt
+// (VERSION file at the repo root is the source of truth; the umbrella short commit is
+// appended) so any screenshot of the root menu traces to an exact build. Loaded once
+// and cached; falls back to the generic build label when the file isn't present (e.g.
+// a bare engine-only dev build that never staged the overlay).
+static const char *Cont_VersionLabel( void )
+{
+	static char s_label[96];
+	static bool s_loaded = false;
+
+	if( !s_loaded )
+	{
+		s_loaded = true;
+		Q_strncpy( s_label, "XASH3D - CONTINUUM BUILD", sizeof( s_label ));
+
+		char *f = (char *)EngFuncs::COM_LoadFile( "gfx/shell/continuum/version.txt", NULL );
+		if( f )
+		{
+			char raw[64];
+			Q_strncpy( raw, f, sizeof( raw ));
+			EngFuncs::COM_FreeFile( f );
+
+			// trim trailing newline/whitespace the file may carry
+			int n = (int)V_strlen( raw );
+			while( n > 0 && ( raw[n-1] == '\n' || raw[n-1] == '\r' || raw[n-1] == ' ' || raw[n-1] == '\t' ))
+				raw[--n] = 0;
+
+			if( raw[0] )
+				snprintf( s_label, sizeof( s_label ), "Continuum v%s", raw );
+		}
+	}
+
+	return s_label;
+}
+
 class CMenuContRoot : public CMenuFramework
 {
 public:
@@ -325,7 +361,7 @@ void CMenuContRoot::Draw()
 		{ GLYPH_A, GLYPH_COUNT, "Select" },
 		{ GLYPH_B, GLYPH_COUNT, "Back" },
 	};
-	DrawLegend( legend, V_ARRAYSIZE( legend ), "XASH3D - CONTINUUM BUILD" );
+	DrawLegend( legend, V_ARRAYSIZE( legend ), Cont_VersionLabel( ));
 }
 
 // UI_Main_Menu picks the menu family: the Continuum root by default, the
