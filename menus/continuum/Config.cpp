@@ -578,7 +578,7 @@ void CMenuContConfig::_Init()
 		"Still experimental: it costs more than anything else here and can "
 		"show edge artifacts in busy scenes. Customize Entity Shadows tunes "
 		"softness, resolution and how many casters draw at once.";
-	entShadows.Setup( "r_entity_shadows", 0 );
+	entShadows.Setup( "r_entity_shadows", 1 );
 	AddRow( TAB_ADVANCED, entShadows, ROW_H );
 
 	entShadowsCustomize.SetNameAndStatus( "Customize Entity Shadows...", NULL );
@@ -601,7 +601,7 @@ void CMenuContConfig::_Init()
 		"Customize Flashlight tunes the beam shape, brightness, range and "
 		"shadows. Infinite Battery removes the drain if you would rather not "
 		"manage it.";
-	flProjected.Setup( "r_flashlight_projected", 0 );
+	flProjected.Setup( "r_flashlight_projected", 1 );
 	AddRow( TAB_GAMEPLAY, flProjected, ROW_H );
 
 	flInfinite.SetNameAndStatus( "Infinite Battery", NULL );
