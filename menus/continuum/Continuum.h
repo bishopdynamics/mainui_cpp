@@ -723,10 +723,10 @@ public:
 		EngFuncs::CvarSetValue( "con_notifytime", on ? 3.0f : 0.0f );
 	}
 
-	bool DefaultOn() const override { return true; }
+	bool DefaultOn() const override { return false; }
 
 	void Reload() override { bOn = EngFuncs::GetCvarFloat( "scr_drawversion" ) != 0.0f; }
-	void ResetDefault() override { Apply( true ); bOn = true; }
+	void ResetDefault() override { Apply( DefaultOn() ); bOn = DefaultOn(); }
 
 	bool KeyDown( int key ) override
 	{

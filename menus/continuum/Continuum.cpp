@@ -26,21 +26,16 @@ HFont fontBody;
 HFont fontHint;
 HFont fontBrandBig; // ~61 root-menu game title
 
-static cvar_t *ui_glyph_style;
-static cvar_t *ui_chapters;
 static cvar_t *sv_chapter_loadout;
 
 void VidInitFonts( void )
 {
 	const float scale = uiStatic.scaleY;
 
-	if( !ui_glyph_style )
-		ui_glyph_style = EngFuncs::CvarRegister( "ui_glyph_style", "auto", FCVAR_ARCHIVE );
-
-	// gates the experimental Chapters page on the per-game page; off by default,
-	// only does anything for the three games that ship a chapter list
-	if( !ui_chapters )
-		ui_chapters = EngFuncs::CvarRegister( "ui_chapters", "0", FCVAR_ARCHIVE );
+	// ui_glyph_style and ui_chapters are FCVAR_ARCHIVE and must persist across
+	// launches, so they're registered by the engine (host.c) BEFORE config.cfg is
+	// exec'd. Registering them here instead (after config exec) would reset the
+	// saved value to the default on every boot -- the menu reads them by name.
 
 	// the Chapters menu writes the selected chapter's starting loadout here for the
 	// game DLL to consume on first spawn; must exist before CvarSet can touch it
@@ -244,7 +239,9 @@ static char g_szGlyphLoadedStyle[16];
 
 const char *GlyphStyle( void )
 {
-	const char *style = ui_glyph_style ? ui_glyph_style->string : "auto";
+	const char *style = EngFuncs::GetCvarString( "ui_glyph_style" );
+	if( !style || !style[0] )
+		style = "auto";
 
 	if( !strcmp( style, "auto" ))
 	{
