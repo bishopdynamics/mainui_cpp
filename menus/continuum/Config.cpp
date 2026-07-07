@@ -204,7 +204,7 @@ private:
 	CContButton aoCustomize;
 	CContToggleRow entShadows;
 	CContButton entShadowsCustomize;
-	CContSliderRow ambient, lodBias, conFontSize;
+	CContSliderRow ambient, lodBias, conFontSize, debrisLife;
 	CContSpinRow decals, fpsMax, renderScale, conFont;
 	CContMsaaRow msaa;
 
@@ -633,6 +633,17 @@ void CMenuContConfig::_Init()
 	decals.szHint = "How many bullet holes and blood splats persist";
 	decals.Setup( "r_decals", decalLabels, decalValues, 4, 2 );
 	AddRow( TAB_ADVANCED, decals, ROW_H );
+
+	debrisLife.SetNameAndStatus( "Debris Lifetime", NULL );
+	debrisLife.szHint = "Seconds broken rubble and debris linger before fading";
+	debrisLife.szCardTitle = "DEBRIS LIFETIME";
+	debrisLife.szCard =
+		"How long the chunks from broken crates, glass, concrete and other "
+		"breakables stay on the ground before they fade away.\n\n"
+		"The stock game clears debris after about 2.5 seconds. Raise this to "
+		"let the wreckage linger and settle into the scene.";
+	debrisLife.Setup( "cl_debris_life", 3, 60, 1, 10, 0 );
+	AddRow( TAB_ADVANCED, debrisLife, ROW_H );
 
 	hdrPerf.SetNameAndStatus( "PERFORMANCE", NULL );
 	AddRow( TAB_ADVANCED, hdrPerf, HEADER_H );
